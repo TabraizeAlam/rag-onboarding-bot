@@ -58,9 +58,11 @@ def clean_doc(doc):
 
 
 def chunk_docs(docs):
+    # chunk_size is in CHARACTERS for RecursiveCharacterTextSplitter.
+    # 1500 chars ≈ 375 tokens — keeps a full markdown section per chunk.
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=512,
-        chunk_overlap=64,
+        chunk_size=1500,
+        chunk_overlap=200,
         separators=["\n## ", "\n### ", "\n\n", "\n", " "],
     )
     chunks = splitter.split_documents(docs)

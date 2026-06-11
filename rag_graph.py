@@ -82,6 +82,10 @@ def build_retriever():
 
     # Sparse BM25 retriever — built from all stored docs
     all_docs = vectorstore.get()
+    if not all_docs["documents"]:
+        raise RuntimeError(
+            "Vector store is empty. Run 'python ingest.py' first to build the knowledge base."
+        )
     bm25_docs = [
         Document(page_content=text, metadata=meta)
         for text, meta in zip(all_docs["documents"], all_docs["metadatas"])

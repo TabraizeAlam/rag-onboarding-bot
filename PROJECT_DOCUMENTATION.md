@@ -21,7 +21,7 @@
 | **Corpus** | 7 Markdown documents (~6,000 words total) covering: team overview, developer environment setup, deployment process, tools & access, engineering processes, architecture overview, and onboarding checklist. Documents are owned by the Platform Engineering team and would normally live in Confluence. |
 | **Ingestion + cleaning** | Documents are loaded from a local `docs/` directory using LangChain's `UnstructuredMarkdownLoader`. Cleaning strips excessive whitespace, normalizes line endings, and removes blank lines. Each chunk is tagged with its source filename for citation. |
 | **Ingestion + freshness** | Documents are ingested on-demand by running `ingest.py`. In a production setup, this would be triggered by a Confluence webhook on page update, with a freshness SLA of under 1 hour. |
-| **Chunking + embedding** | Recursive character splitting at **512 tokens with 64-token overlap**, using `["\n## ", "\n### ", "\n\n", "\n", " "]` as separators — this respects Markdown heading boundaries so chunks stay semantically coherent. Embedding model: **`BAAI/bge-en-icl` via Nebius Token Factory** — strong English retrieval embeddings, served through the same API key as generation (single-provider setup). |
+| **Chunking + embedding** | Recursive character splitting at **1,500 characters (~375 tokens) with 200-character overlap**, using `["\n## ", "\n### ", "\n\n", "\n", " "]` as separators — this respects Markdown heading boundaries so chunks stay semantically coherent. Embedding model: **`BAAI/bge-en-icl` via Nebius Token Factory** — strong English retrieval embeddings, served through the same API key as generation (single-provider setup). |
 | **Retrieve** | **Hybrid retrieval + rerank**: 60% dense vector search (Chroma) + 40% BM25 sparse (`EnsembleRetriever`), retrieving top-8 wide, then a **FlashRank cross-encoder reranker** (`ms-marco-MiniLM-L-12-v2`, runs locally) narrows to the best 4. Dense catches semantic intent; BM25 catches exact tool names ("AWS SSO", "kubectl"). A batched cosine-similarity threshold (0.30) then grades relevance and triggers the "I don't know" refusal path if nothing clears the bar. |
 
 ---
@@ -36,7 +36,7 @@ docs/*.md
     ▼
 ingest.py
   ├── DirectoryLoader (UnstructuredMarkdownLoader)
-  ├── RecursiveCharacterTextSplitter (512 tok, 64 overlap)
+  ├── RecursiveCharacterTextSplitter (1500 chars, 200 overlap)
   ├── OpenAIEmbeddings (text-embedding-3-small)
   └── Chroma (persisted to chroma_db/)
     │
@@ -96,11 +96,11 @@ The knowledge base contains both semantic content ("what are the team's communic
 ### Why the "I don't know" path first?
 Per the handout's advice: *"Your 'I don't know' path matters more than your happy path."* The relevance grading node was designed before the generation node. If cosine similarity between the question embedding and all retrieved chunks is below 0.25, the pipeline refuses rather than hallucinating. This is critical for an onboarding tool — a new hire who gets a wrong answer about a deployment process could break production.
 
-### Why 512-token chunks?
-- Small enough to stay focused on one topic per chunk (a single section of a doc)
-- Large enough to provide meaningful context to the LLM
-- Matches well with `text-embedding-3-small`'s capacity (8,192 token limit — 512 is well within optimal range)
-- 64-token overlap prevents important context from being split across chunk boundaries
+### Why 1,500-character (~375-token) chunks?
+- Small enough to stay focused on one topic per chunk (a single markdown section)
+- Large enough that procedural content (multi-step instructions, tables) isn't split mid-thought
+- Note: `RecursiveCharacterTextSplitter` measures **characters**, not tokens — an easy mistake. 1,500 chars ≈ 375 tokens for English technical text.
+- 200-character overlap prevents important context from being split across chunk boundaries
 
 ### Why Nebius for everything?
 The course requires at least one Nebius Token Factory call — this project routes **all** model calls through Nebius: embeddings (`BAAI/bge-en-icl`), generation, and the eval faithfulness judge. One API key, one billing surface, zero OpenAI dependency. The pipeline stays modular: swapping the embedding or generation provider is a two-line change since Nebius exposes an OpenAI-compatible API.
@@ -127,7 +127,7 @@ The knowledge base consists of 7 synthetic Markdown documents simulating a real 
 | `06_architecture_overview.md` | Services, infrastructure (AWS/EKS/RDS/Kafka/Snowflake), networking, observability | ~700 |
 | `07_onboarding_checklist.md` | Week 1–4 checklist, 30/60-day milestones, key contacts, FAQ | ~750 |
 
-**Total:** ~4,650 words → ~37 chunks after splitting at 512 tokens with 64-token overlap.
+**Total:** ~4,650 words → ~25–30 chunks after splitting at 1,500 characters with 200-character overlap.
 
 ---
 

@@ -20,7 +20,7 @@ User question  →  LangGraph pipeline:
 **Key decisions:**
 | Layer | Choice | Why |
 |-------|--------|-----|
-| Chunking | Recursive, 512 tokens, 64 overlap | Matches heading-based markdown structure |
+| Chunking | Recursive, 1,500 chars (~375 tokens), 200 overlap | Keeps a full markdown section per chunk |
 | Embedding | Nebius `BAAI/bge-en-icl` | Single API key for whole project; strong English embeddings |
 | Retrieval | Hybrid BM25 + dense (60/40), top-8 | Dense catches semantic intent; BM25 catches exact tool names / acronyms |
 | Reranking | FlashRank `ms-marco-MiniLM-L-12-v2` (local) | Cross-encoder reads question+chunk together; free, no GPU |
