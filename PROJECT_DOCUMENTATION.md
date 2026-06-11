@@ -22,7 +22,7 @@
 | **Ingestion + cleaning** | Documents are loaded from a local `docs/` directory using LangChain's `UnstructuredMarkdownLoader`. Cleaning strips excessive whitespace, normalizes line endings, and removes blank lines. Each chunk is tagged with its source filename for citation. |
 | **Ingestion + freshness** | Documents are ingested on-demand by running `ingest.py`. In a production setup, this would be triggered by a Confluence webhook on page update, with a freshness SLA of under 1 hour. |
 | **Chunking + embedding** | Recursive character splitting at **1,500 characters (~375 tokens) with 200-character overlap**, using `["\n## ", "\n### ", "\n\n", "\n", " "]` as separators — this respects Markdown heading boundaries so chunks stay semantically coherent. Embedding model: **`BAAI/bge-en-icl` via Nebius Token Factory** — strong English retrieval embeddings, served through the same API key as generation (single-provider setup). |
-| **Retrieve** | **Hybrid retrieval + rerank**: 60% dense vector search (Chroma) + 40% BM25 sparse (`EnsembleRetriever`), retrieving top-8 wide, then a **FlashRank cross-encoder reranker** (`ms-marco-MiniLM-L-12-v2`, runs locally) narrows to the best 4. Dense catches semantic intent; BM25 catches exact tool names ("AWS SSO", "kubectl"). A batched cosine-similarity threshold (0.30) then grades relevance and triggers the "I don't know" refusal path if nothing clears the bar. |
+| **Retrieve** | **Hybrid retrieval + rerank**: 60% dense vector search (Chroma) + 40% BM25 sparse (`EnsembleRetriever`), retrieving top-8 wide, then a **FlashRank cross-encoder reranker** (`ms-marco-MiniLM-L-12-v2`, runs locally) narrows to the best 4. Dense catches semantic intent; BM25 catches exact tool names ("AWS SSO", "kubectl"). The cross-encoder's calibrated scores also gate the refusal path: if no passage scores ≥ 0.30, the bot says "I don't know" instead of hallucinating. |
 
 ---
 
@@ -48,20 +48,17 @@ LangGraph RAG Pipeline (rag_graph.py)
   │     ├── Sparse: BM25Retriever
   │     └── EnsembleRetriever (60/40 hybrid, top-k=8)
   │
-  ├── Node 2: rerank
-  │     └── FlashRank cross-encoder (ms-marco-MiniLM-L-12-v2) → top 4
+  ├── Node 2: rerank_and_grade
+  │     ├── FlashRank cross-encoder (ms-marco-MiniLM-L-12-v2) → top 4
+  │     ├── Same calibrated scores gate refusal (threshold 0.30)
+  │     └── Route → generate OR refuse  (zero API calls — runs locally)
   │
-  ├── Node 3: grade_relevance
-  │     ├── Batched cosine similarity per doc vs. question
-  │     ├── Filter docs below threshold (0.30)
-  │     └── Route → generate OR refuse
-  │
-  ├── Node 4a: generate
+  ├── Node 3a: generate
   │     ├── LLM: Nebius Token Factory (Meta-Llama-3.1-70B-Instruct-fast)
   │     ├── System prompt enforces citation and faithfulness
   │     └── Returns answer + source filenames
   │
-  └── Node 4b: refuse
+  └── Node 3b: refuse
         └── Returns canned "not found" message with escalation paths
     │
     ▼
@@ -107,6 +104,9 @@ The course requires at least one Nebius Token Factory call — this project rout
 
 ### Why add a reranker?
 Hybrid retrieval gets the right chunks *into* the candidate pool but ranks them with bi-encoder similarity, which scores question and chunk independently. The FlashRank cross-encoder reads them *together*, catching subtleties like "rollback" vs "deployment" being different intents over the same doc. We retrieve top-8 wide, rerank to the best 4 — better precision in the LLM context window at zero API cost (the model runs locally, ~34 MB).
+
+### Why does the reranker also gate the refusal path?
+An earlier design graded relevance with embedding cosine similarity, but BGE-family embeddings are poorly calibrated for that: even unrelated question/passage pairs score ~0.5, so a fixed threshold either never refuses or refuses everything. Cross-encoder scores are well-calibrated — irrelevant passages score near 0.0, relevant ones near 0.9 — so the same rerank pass doubles as the refusal gate. This removed two embedding API calls per question (faster, cheaper) while making the "I don't know" path actually reliable.
 
 ### How is faithfulness measured?
 `eval.py` uses **LLM-as-judge**: after each answered question, a second Nebius call receives the question, the retrieved chunks, and the generated answer, and returns a JSON verdict on whether every claim is grounded in the chunks. The summary reports faithfulness as a percentage against the ≥90% target in the one-liner.

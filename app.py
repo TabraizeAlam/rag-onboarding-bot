@@ -49,6 +49,11 @@ if prompt := st.chat_input("Ask a question about the team or setup..."):
         st.markdown(answer)
         if sources:
             st.caption(f"Sources: {', '.join(sources)}")
+            with st.expander("🔍 Retrieved context (reranked)"):
+                for chunk, score in zip(result["context"], result["relevance_scores"]):
+                    st.markdown(f"**Relevance score: {score:.3f}**")
+                    st.text(chunk[:500] + ("..." if len(chunk) > 500 else ""))
+                    st.divider()
         elif refused:
             st.caption("No relevant documents found in the knowledge base.")
 

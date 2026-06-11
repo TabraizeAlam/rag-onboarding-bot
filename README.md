@@ -11,10 +11,10 @@ docs/*.md  →  ingest.py  →  Chroma (vector store)
                                ↓
 User question  →  LangGraph pipeline:
                     retrieve (hybrid BM25 + dense, top-8)
-                    → rerank (FlashRank cross-encoder, top-4)
-                    → grade_relevance (batched cosine threshold)
+                    → rerank_and_grade (FlashRank cross-encoder:
+                        reorders to top-4 AND gates refusal by score)
                     → generate (Nebius Llama-70B) or refuse
-                    → Streamlit UI (multi-turn)
+                    → Streamlit UI (multi-turn + context inspector)
 ```
 
 **Key decisions:**
@@ -25,7 +25,7 @@ User question  →  LangGraph pipeline:
 | Retrieval | Hybrid BM25 + dense (60/40), top-8 | Dense catches semantic intent; BM25 catches exact tool names / acronyms |
 | Reranking | FlashRank `ms-marco-MiniLM-L-12-v2` (local) | Cross-encoder reads question+chunk together; free, no GPU |
 | Generation | Nebius Meta-Llama-3.1-70B-Instruct-fast | Required by course; fast inference |
-| "I don't know" path | Cosine similarity threshold (0.30) | Prevents hallucination when no relevant docs retrieved |
+| "I don't know" path | Cross-encoder score threshold (0.30) | Calibrated refusal signal (irrelevant ≈ 0.0x, relevant ≈ 0.9) — embedding cosine is poorly calibrated for this |
 | Eval | LLM-as-judge faithfulness scoring | Measures grounding, not just retrieval — per the handout |
 
 **Only one API key needed: Nebius.** Both embeddings and generation run through Nebius Token Factory's OpenAI-compatible API.

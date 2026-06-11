@@ -2,8 +2,14 @@
 LangGraph-based RAG pipeline — Nebius-only (embeddings + generation).
 
 Graph nodes:
-  retrieve  →  rerank  →  grade_relevance  →  generate  (if relevant docs found)
-                                           →  refuse    (if no relevant docs)
+  retrieve  →  rerank_and_grade  →  generate  (if relevant docs found)
+                                 →  refuse    (if no relevant docs)
+
+The FlashRank cross-encoder does double duty: it reorders the hybrid
+retrieval candidates AND its calibrated scores gate the refusal path.
+(Embedding cosine similarity is a poor refusal signal for BGE-family
+models — unrelated pairs still score ~0.5 — while cross-encoder scores
+sit near 0 for irrelevant passages and near 1 for relevant ones.)
 """
 
 from __future__ import annotations
@@ -12,14 +18,13 @@ import os
 from pathlib import Path
 from typing import TypedDict
 
-import numpy as np
 from dotenv import load_dotenv
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_chroma import Chroma
 from langchain_community.retrievers import BM25Retriever
 from langchain.retrievers import EnsembleRetriever
 from langchain.schema import Document
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langgraph.graph import StateGraph, END
 
 load_dotenv()
@@ -28,7 +33,7 @@ CHROMA_DIR = Path(__file__).parent / "chroma_db"
 COLLECTION_NAME = "onboarding_kb"
 TOP_K = 8            # retrieve wide...
 RERANK_TOP_N = 4     # ...then rerank down to the best few
-RELEVANCE_THRESHOLD = 0.30  # cosine similarity floor (0–1)
+RELEVANCE_THRESHOLD = 0.30  # cross-encoder score floor (0–1); irrelevant ≈ 0.0x
 
 NEBIUS_BASE_URL = "https://api.studio.nebius.ai/v1/"
 EMBEDDING_MODEL = "BAAI/bge-en-icl"
@@ -98,7 +103,6 @@ def build_retriever():
 
 _retriever = None
 _reranker = None
-_embeddings = None
 _graph = None
 
 
@@ -118,13 +122,6 @@ def get_reranker():
     return _reranker
 
 
-def get_cached_embeddings():
-    global _embeddings
-    if _embeddings is None:
-        _embeddings = get_embeddings()
-    return _embeddings
-
-
 # ── Graph nodes ───────────────────────────────────────────────────────────────
 
 def retrieve(state: RAGState) -> dict:
@@ -132,41 +129,30 @@ def retrieve(state: RAGState) -> dict:
     return {"documents": docs}
 
 
-def rerank(state: RAGState) -> dict:
-    """Cross-encoder rerank: reads question + chunk together for precise relevance ordering."""
+def rerank_and_grade(state: RAGState) -> dict:
+    """
+    Cross-encoder rerank: reads question + chunk together for precise
+    relevance ordering. The same calibrated scores gate the refusal path —
+    if no passage clears RELEVANCE_THRESHOLD, route to refuse.
+    Runs locally; zero API calls.
+    """
     from flashrank import RerankRequest
 
     docs = state["documents"]
     if not docs:
-        return {"documents": []}
+        return {"documents": [], "relevance_scores": [], "refused": True}
 
     request = RerankRequest(
         query=state["question"],
         passages=[{"id": i, "text": d.page_content} for i, d in enumerate(docs)],
     )
     results = get_reranker().rerank(request)
-    ranked = [docs[r["id"]] for r in results[:RERANK_TOP_N]]
-    return {"documents": ranked}
 
-
-def grade_relevance(state: RAGState) -> dict:
-    """
-    Score reranked docs against the question via embedding cosine similarity
-    (single batched call). If none clear the threshold, route to refusal.
-    """
-    docs = state["documents"]
-    if not docs:
-        return {"documents": [], "relevance_scores": [], "refused": True}
-
-    emb = get_cached_embeddings()
-    q_arr = np.array(emb.embed_query(state["question"]))
-    doc_vecs = np.array(emb.embed_documents([d.page_content for d in docs]))
-
-    norms = np.linalg.norm(doc_vecs, axis=1) * np.linalg.norm(q_arr) + 1e-10
-    scores = (doc_vecs @ q_arr) / norms
-
-    keep = [(float(s), d) for s, d in zip(scores, docs) if s >= RELEVANCE_THRESHOLD]
-    keep.sort(key=lambda x: x[0], reverse=True)
+    keep = [
+        (float(r["score"]), docs[r["id"]])
+        for r in results[:RERANK_TOP_N]
+        if r["score"] >= RELEVANCE_THRESHOLD
+    ]
 
     return {
         "documents": [d for _, d in keep],
@@ -197,7 +183,7 @@ def generate(state: RAGState) -> dict:
     messages = [SystemMessage(content=system)]
     # Multi-turn: include recent history so follow-up questions keep context
     for role, content in state.get("chat_history", [])[-6:]:
-        messages.append(HumanMessage(content=content) if role == "user" else SystemMessage(content=f"(Previous answer) {content}"))
+        messages.append(HumanMessage(content=content) if role == "user" else AIMessage(content=content))
     messages.append(HumanMessage(content=f"Knowledge base excerpts:\n\n{context}\n\nQuestion: {state['question']}"))
 
     response = llm.invoke(messages)
@@ -224,15 +210,13 @@ def route_after_grading(state: RAGState) -> str:
 def build_graph():
     graph = StateGraph(RAGState)
     graph.add_node("retrieve", retrieve)
-    graph.add_node("rerank", rerank)
-    graph.add_node("grade_relevance", grade_relevance)
+    graph.add_node("rerank_and_grade", rerank_and_grade)
     graph.add_node("generate", generate)
     graph.add_node("refuse", refuse)
 
     graph.set_entry_point("retrieve")
-    graph.add_edge("retrieve", "rerank")
-    graph.add_edge("rerank", "grade_relevance")
-    graph.add_conditional_edges("grade_relevance", route_after_grading, {
+    graph.add_edge("retrieve", "rerank_and_grade")
+    graph.add_conditional_edges("rerank_and_grade", route_after_grading, {
         "generate": "generate",
         "refuse": "refuse",
     })

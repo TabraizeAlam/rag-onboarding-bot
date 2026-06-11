@@ -6,6 +6,7 @@ Run once (or whenever docs change): python ingest.py
 """
 
 import os
+import shutil
 from pathlib import Path
 from dotenv import load_dotenv
 from langchain_community.document_loaders import TextLoader
@@ -70,6 +71,10 @@ def chunk_docs(docs):
 
 
 def build_vector_store(chunks):
+    # Chroma.from_documents APPENDS to an existing collection — wipe first
+    # so re-running ingest never creates duplicate chunks.
+    if CHROMA_DIR.exists():
+        shutil.rmtree(CHROMA_DIR)
     vectorstore = Chroma.from_documents(
         documents=chunks,
         embedding=get_embeddings(),
