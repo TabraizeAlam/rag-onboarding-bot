@@ -1,18 +1,18 @@
 """
-LangGraph-based RAG pipeline.
+LangGraph-based RAG pipeline — Nebius-only (embeddings + generation).
 
 Graph nodes:
-  retrieve  →  grade_relevance  →  generate  (if relevant docs found)
-                                →  refuse    (if no relevant docs)
+  retrieve  →  rerank  →  grade_relevance  →  generate  (if relevant docs found)
+                                           →  refuse    (if no relevant docs)
 """
 
 from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import TypedDict, Annotated
-import operator
+from typing import TypedDict
 
+import numpy as np
 from dotenv import load_dotenv
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_chroma import Chroma
@@ -26,14 +26,20 @@ load_dotenv()
 
 CHROMA_DIR = Path(__file__).parent / "chroma_db"
 COLLECTION_NAME = "onboarding_kb"
-TOP_K = 5
-RELEVANCE_THRESHOLD = 0.25  # cosine similarity floor (0–1)
+TOP_K = 8            # retrieve wide...
+RERANK_TOP_N = 4     # ...then rerank down to the best few
+RELEVANCE_THRESHOLD = 0.30  # cosine similarity floor (0–1)
+
+NEBIUS_BASE_URL = "https://api.studio.nebius.ai/v1/"
+EMBEDDING_MODEL = "BAAI/bge-en-icl"
+GENERATION_MODEL = "meta-llama/Meta-Llama-3.1-70B-Instruct-fast"
 
 
 # ── State ────────────────────────────────────────────────────────────────────
 
 class RAGState(TypedDict):
     question: str
+    chat_history: list[tuple[str, str]]  # (role, content) pairs for multi-turn
     documents: list[Document]
     relevance_scores: list[float]
     answer: str
@@ -41,21 +47,38 @@ class RAGState(TypedDict):
     refused: bool
 
 
+# ── Shared clients ───────────────────────────────────────────────────────────
+
+def get_embeddings():
+    return OpenAIEmbeddings(
+        model=EMBEDDING_MODEL,
+        openai_api_key=os.environ["NEBIUS_API_KEY"],
+        openai_api_base=NEBIUS_BASE_URL,
+        tiktoken_enabled=False,
+        check_embedding_ctx_length=False,
+    )
+
+
+def get_llm(temperature: float = 0.1):
+    return ChatOpenAI(
+        model=GENERATION_MODEL,
+        openai_api_key=os.environ["NEBIUS_API_KEY"],
+        openai_api_base=NEBIUS_BASE_URL,
+        temperature=temperature,
+        max_tokens=1024,
+    )
+
+
 # ── Retriever setup ──────────────────────────────────────────────────────────
 
 def build_retriever():
-    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
     vectorstore = Chroma(
         collection_name=COLLECTION_NAME,
-        embedding_function=embeddings,
+        embedding_function=get_embeddings(),
         persist_directory=str(CHROMA_DIR),
     )
 
-    # Dense retriever
-    dense = vectorstore.as_retriever(
-        search_type="similarity_score_threshold",
-        search_kwargs={"k": TOP_K, "score_threshold": 0.0},
-    )
+    dense = vectorstore.as_retriever(search_kwargs={"k": TOP_K})
 
     # Sparse BM25 retriever — built from all stored docs
     all_docs = vectorstore.get()
@@ -70,6 +93,10 @@ def build_retriever():
 
 
 _retriever = None
+_reranker = None
+_embeddings = None
+_graph = None
+
 
 def get_retriever():
     global _retriever
@@ -78,58 +105,77 @@ def get_retriever():
     return _retriever
 
 
-# ── LLM (Nebius Token Factory — required by course) ──────────────────────────
+def get_reranker():
+    """Local cross-encoder reranker (FlashRank, small ONNX model, no GPU needed)."""
+    global _reranker
+    if _reranker is None:
+        from flashrank import Ranker
+        _reranker = Ranker(model_name="ms-marco-MiniLM-L-12-v2", cache_dir=str(Path(__file__).parent / ".flashrank"))
+    return _reranker
 
-def get_llm():
-    return ChatOpenAI(
-        model="meta-llama/Meta-Llama-3.1-70B-Instruct-fast",
-        openai_api_key=os.environ["NEBIUS_API_KEY"],
-        openai_api_base="https://api.studio.nebius.ai/v1/",
-        temperature=0.1,
-        max_tokens=1024,
-    )
+
+def get_cached_embeddings():
+    global _embeddings
+    if _embeddings is None:
+        _embeddings = get_embeddings()
+    return _embeddings
 
 
 # ── Graph nodes ───────────────────────────────────────────────────────────────
 
 def retrieve(state: RAGState) -> dict:
-    retriever = get_retriever()
-    docs = retriever.invoke(state["question"])
+    docs = get_retriever().invoke(state["question"])
     return {"documents": docs}
+
+
+def rerank(state: RAGState) -> dict:
+    """Cross-encoder rerank: reads question + chunk together for precise relevance ordering."""
+    from flashrank import RerankRequest
+
+    docs = state["documents"]
+    if not docs:
+        return {"documents": []}
+
+    request = RerankRequest(
+        query=state["question"],
+        passages=[{"id": i, "text": d.page_content} for i, d in enumerate(docs)],
+    )
+    results = get_reranker().rerank(request)
+    ranked = [docs[r["id"]] for r in results[:RERANK_TOP_N]]
+    return {"documents": ranked}
 
 
 def grade_relevance(state: RAGState) -> dict:
     """
-    Score each retrieved doc against the question via embedding cosine similarity.
-    Keep docs above threshold; if none survive, signal refusal.
+    Score reranked docs against the question via embedding cosine similarity
+    (single batched call). If none clear the threshold, route to refusal.
     """
-    from langchain_openai import OpenAIEmbeddings
-    import numpy as np
+    docs = state["documents"]
+    if not docs:
+        return {"documents": [], "relevance_scores": [], "refused": True}
 
-    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
-    q_vec = embeddings.embed_query(state["question"])
-    q_arr = np.array(q_vec)
+    emb = get_cached_embeddings()
+    q_arr = np.array(emb.embed_query(state["question"]))
+    doc_vecs = np.array(emb.embed_documents([d.page_content for d in docs]))
 
-    scored = []
-    for doc in state["documents"]:
-        d_arr = np.array(embeddings.embed_query(doc.page_content))
-        score = float(np.dot(q_arr, d_arr) / (np.linalg.norm(q_arr) * np.linalg.norm(d_arr) + 1e-10))
-        scored.append((score, doc))
+    norms = np.linalg.norm(doc_vecs, axis=1) * np.linalg.norm(q_arr) + 1e-10
+    scores = (doc_vecs @ q_arr) / norms
 
-    scored.sort(key=lambda x: x[0], reverse=True)
-    relevant = [(s, d) for s, d in scored if s >= RELEVANCE_THRESHOLD]
+    keep = [(float(s), d) for s, d in zip(scores, docs) if s >= RELEVANCE_THRESHOLD]
+    keep.sort(key=lambda x: x[0], reverse=True)
 
-    scores = [s for s, _ in relevant]
-    docs = [d for _, d in relevant]
-    refused = len(docs) == 0
-    return {"documents": docs, "relevance_scores": scores, "refused": refused}
+    return {
+        "documents": [d for _, d in keep],
+        "relevance_scores": [s for s, _ in keep],
+        "refused": len(keep) == 0,
+    }
 
 
 def generate(state: RAGState) -> dict:
     llm = get_llm()
     context_parts = []
     sources = []
-    for i, doc in enumerate(state["documents"][:5]):
+    for i, doc in enumerate(state["documents"]):
         src = doc.metadata.get("source_file", f"doc_{i}")
         context_parts.append(f"[{src}]\n{doc.page_content}")
         if src not in sources:
@@ -143,9 +189,14 @@ def generate(state: RAGState) -> dict:
         "Cite the source file name in your answer (e.g. 'According to 02_dev_environment_setup.md...'). "
         "If the excerpts do not contain enough information, say so clearly rather than guessing."
     )
-    user = f"Knowledge base excerpts:\n\n{context}\n\nQuestion: {state['question']}"
 
-    response = llm.invoke([SystemMessage(content=system), HumanMessage(content=user)])
+    messages = [SystemMessage(content=system)]
+    # Multi-turn: include recent history so follow-up questions keep context
+    for role, content in state.get("chat_history", [])[-6:]:
+        messages.append(HumanMessage(content=content) if role == "user" else SystemMessage(content=f"(Previous answer) {content}"))
+    messages.append(HumanMessage(content=f"Knowledge base excerpts:\n\n{context}\n\nQuestion: {state['question']}"))
+
+    response = llm.invoke(messages)
     return {"answer": response.content, "sources": sources}
 
 
@@ -169,12 +220,14 @@ def route_after_grading(state: RAGState) -> str:
 def build_graph():
     graph = StateGraph(RAGState)
     graph.add_node("retrieve", retrieve)
+    graph.add_node("rerank", rerank)
     graph.add_node("grade_relevance", grade_relevance)
     graph.add_node("generate", generate)
     graph.add_node("refuse", refuse)
 
     graph.set_entry_point("retrieve")
-    graph.add_edge("retrieve", "grade_relevance")
+    graph.add_edge("retrieve", "rerank")
+    graph.add_edge("rerank", "grade_relevance")
     graph.add_conditional_edges("grade_relevance", route_after_grading, {
         "generate": "generate",
         "refuse": "refuse",
@@ -185,8 +238,6 @@ def build_graph():
     return graph.compile()
 
 
-_graph = None
-
 def get_graph():
     global _graph
     if _graph is None:
@@ -194,10 +245,11 @@ def get_graph():
     return _graph
 
 
-def ask(question: str) -> dict:
-    """Public API: ask a question, get back answer + sources."""
+def ask(question: str, chat_history: list[tuple[str, str]] | None = None) -> dict:
+    """Public API: ask a question, get back answer + sources + retrieved context."""
     initial = RAGState(
         question=question,
+        chat_history=chat_history or [],
         documents=[],
         relevance_scores=[],
         answer="",
@@ -210,4 +262,6 @@ def ask(question: str) -> dict:
         "sources": result["sources"],
         "refused": result.get("refused", False),
         "num_docs_retrieved": len(result["documents"]),
+        "relevance_scores": result.get("relevance_scores", []),
+        "context": [d.page_content for d in result["documents"]],
     }

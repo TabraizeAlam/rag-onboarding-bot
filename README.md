@@ -10,20 +10,25 @@ Built for The Gen Academy — Week 2 Project (Track 2: LangChain + LangGraph).
 docs/*.md  →  ingest.py  →  Chroma (vector store)
                                ↓
 User question  →  LangGraph pipeline:
-                    retrieve (hybrid BM25 + dense)
-                    → grade_relevance (cosine threshold)
-                    → generate (Nebius LLM) or refuse
-                    → Streamlit UI
+                    retrieve (hybrid BM25 + dense, top-8)
+                    → rerank (FlashRank cross-encoder, top-4)
+                    → grade_relevance (batched cosine threshold)
+                    → generate (Nebius Llama-70B) or refuse
+                    → Streamlit UI (multi-turn)
 ```
 
 **Key decisions:**
 | Layer | Choice | Why |
 |-------|--------|-----|
 | Chunking | Recursive, 512 tokens, 64 overlap | Matches heading-based markdown structure |
-| Embedding | OpenAI text-embedding-3-small | Fast, cheap, high quality for English text |
-| Retrieval | Hybrid BM25 + dense (60/40) | Dense catches semantic intent; BM25 catches exact tool names / acronyms |
+| Embedding | Nebius `BAAI/bge-en-icl` | Single API key for whole project; strong English embeddings |
+| Retrieval | Hybrid BM25 + dense (60/40), top-8 | Dense catches semantic intent; BM25 catches exact tool names / acronyms |
+| Reranking | FlashRank `ms-marco-MiniLM-L-12-v2` (local) | Cross-encoder reads question+chunk together; free, no GPU |
 | Generation | Nebius Meta-Llama-3.1-70B-Instruct-fast | Required by course; fast inference |
-| "I don't know" path | Cosine similarity threshold (0.25) | Prevents hallucination when no relevant docs retrieved |
+| "I don't know" path | Cosine similarity threshold (0.30) | Prevents hallucination when no relevant docs retrieved |
+| Eval | LLM-as-judge faithfulness scoring | Measures grounding, not just retrieval — per the handout |
+
+**Only one API key needed: Nebius.** Both embeddings and generation run through Nebius Token Factory's OpenAI-compatible API.
 
 ## Setup
 
@@ -39,19 +44,19 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 2. Configure API keys
+### 2. Configure API key (only Nebius needed)
 ```bash
 cp .env.example .env
-# Edit .env and fill in OPENAI_API_KEY and NEBIUS_API_KEY
+# Edit .env and fill in NEBIUS_API_KEY
 ```
 
-Get your Nebius key at: https://studio.nebius.ai/
+Get your Nebius key at: https://studio.nebius.ai/ → API Keys
 
 ### 3. Ingest documents
 ```bash
 python ingest.py
 ```
-This loads the 7 markdown docs from `docs/`, chunks them, embeds them with OpenAI, and stores them in a local Chroma DB (`chroma_db/`). Takes ~30 seconds.
+This loads the 7 markdown docs from `docs/`, chunks them, embeds them via Nebius (`BAAI/bge-en-icl`), and stores them in a local Chroma DB (`chroma_db/`). Takes ~30 seconds.
 
 ### 4. Run the chatbot
 ```bash

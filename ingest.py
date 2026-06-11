@@ -1,5 +1,7 @@
 """
 Ingest markdown docs into a persistent Chroma vector store.
+Uses Nebius Token Factory for embeddings (no OpenAI key needed).
+
 Run once (or whenever docs change): python ingest.py
 """
 
@@ -16,6 +18,21 @@ load_dotenv()
 DOCS_DIR = Path(__file__).parent / "docs"
 CHROMA_DIR = Path(__file__).parent / "chroma_db"
 COLLECTION_NAME = "onboarding_kb"
+
+# Nebius serves embeddings through an OpenAI-compatible API
+NEBIUS_BASE_URL = "https://api.studio.nebius.ai/v1/"
+EMBEDDING_MODEL = "BAAI/bge-en-icl"
+
+
+def get_embeddings():
+    return OpenAIEmbeddings(
+        model=EMBEDDING_MODEL,
+        openai_api_key=os.environ["NEBIUS_API_KEY"],
+        openai_api_base=NEBIUS_BASE_URL,
+        # Nebius does not support OpenAI's dimension/tokenization params
+        tiktoken_enabled=False,
+        check_embedding_ctx_length=False,
+    )
 
 
 def load_docs():
@@ -51,10 +68,9 @@ def chunk_docs(docs):
 
 
 def build_vector_store(chunks):
-    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
     vectorstore = Chroma.from_documents(
         documents=chunks,
-        embedding=embeddings,
+        embedding=get_embeddings(),
         collection_name=COLLECTION_NAME,
         persist_directory=str(CHROMA_DIR),
     )
@@ -70,7 +86,7 @@ if __name__ == "__main__":
     chunks = chunk_docs(docs)
     print(f"  Created {len(chunks)} chunks")
 
-    print("Building vector store...")
+    print(f"Embedding with Nebius ({EMBEDDING_MODEL}) and building vector store...")
     vs = build_vector_store(chunks)
     print(f"  Stored in {CHROMA_DIR}")
-    print("Done. Run app.py to start the chatbot.")
+    print("Done. Run 'streamlit run app.py' to start the chatbot.")

@@ -36,7 +36,11 @@ if prompt := st.chat_input("Ask a question about the team or setup..."):
 
     with st.chat_message("assistant"):
         with st.spinner("Searching knowledge base..."):
-            result = ask(prompt)
+            history = [
+                (m["role"], m["content"])
+                for m in st.session_state.messages[:-1]
+            ]
+            result = ask(prompt, chat_history=history)
 
         answer = result["answer"]
         sources = result["sources"]

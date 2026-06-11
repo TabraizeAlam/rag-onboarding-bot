@@ -9,3 +9,4 @@ streamlit>=1.39.0
 python-dotenv>=1.0.0
 tiktoken>=0.7.0
 numpy>=1.26.0
+flashrank>=0.2.9

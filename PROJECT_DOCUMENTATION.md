@@ -21,8 +21,8 @@
 | **Corpus** | 7 Markdown documents (~6,000 words total) covering: team overview, developer environment setup, deployment process, tools & access, engineering processes, architecture overview, and onboarding checklist. Documents are owned by the Platform Engineering team and would normally live in Confluence. |
 | **Ingestion + cleaning** | Documents are loaded from a local `docs/` directory using LangChain's `UnstructuredMarkdownLoader`. Cleaning strips excessive whitespace, normalizes line endings, and removes blank lines. Each chunk is tagged with its source filename for citation. |
 | **Ingestion + freshness** | Documents are ingested on-demand by running `ingest.py`. In a production setup, this would be triggered by a Confluence webhook on page update, with a freshness SLA of under 1 hour. |
-| **Chunking + embedding** | Recursive character splitting at **512 tokens with 64-token overlap**, using `["\n## ", "\n### ", "\n\n", "\n", " "]` as separators — this respects Markdown heading boundaries so chunks stay semantically coherent. Embedding model: **OpenAI `text-embedding-3-small`** (1,536 dimensions) — chosen for its balance of cost, speed, and quality on English technical text. |
-| **Retrieve** | **Hybrid retrieval**: 60% weight on dense vector search (Chroma) + 40% BM25 sparse retrieval (`EnsembleRetriever`). Top-k = 5. Dense search catches semantic intent ("how do I get cloud access?"); BM25 catches exact tool/command names ("AWS SSO", "kubectl", "Tailscale") that embeddings can dilute. A cosine similarity threshold of 0.25 is applied post-retrieval to grade relevance and trigger the "I don't know" refusal path if no docs clear the bar. |
+| **Chunking + embedding** | Recursive character splitting at **512 tokens with 64-token overlap**, using `["\n## ", "\n### ", "\n\n", "\n", " "]` as separators — this respects Markdown heading boundaries so chunks stay semantically coherent. Embedding model: **`BAAI/bge-en-icl` via Nebius Token Factory** — strong English retrieval embeddings, served through the same API key as generation (single-provider setup). |
+| **Retrieve** | **Hybrid retrieval + rerank**: 60% dense vector search (Chroma) + 40% BM25 sparse (`EnsembleRetriever`), retrieving top-8 wide, then a **FlashRank cross-encoder reranker** (`ms-marco-MiniLM-L-12-v2`, runs locally) narrows to the best 4. Dense catches semantic intent; BM25 catches exact tool names ("AWS SSO", "kubectl"). A batched cosine-similarity threshold (0.30) then grades relevance and triggers the "I don't know" refusal path if nothing clears the bar. |
 
 ---
 
@@ -46,19 +46,22 @@ LangGraph RAG Pipeline (rag_graph.py)
   ├── Node 1: retrieve
   │     ├── Dense: Chroma similarity search
   │     ├── Sparse: BM25Retriever
-  │     └── EnsembleRetriever (60/40 hybrid, top-k=5)
+  │     └── EnsembleRetriever (60/40 hybrid, top-k=8)
   │
-  ├── Node 2: grade_relevance
-  │     ├── Compute cosine similarity per doc vs. question
-  │     ├── Filter docs below threshold (0.25)
+  ├── Node 2: rerank
+  │     └── FlashRank cross-encoder (ms-marco-MiniLM-L-12-v2) → top 4
+  │
+  ├── Node 3: grade_relevance
+  │     ├── Batched cosine similarity per doc vs. question
+  │     ├── Filter docs below threshold (0.30)
   │     └── Route → generate OR refuse
   │
-  ├── Node 3a: generate
+  ├── Node 4a: generate
   │     ├── LLM: Nebius Token Factory (Meta-Llama-3.1-70B-Instruct-fast)
   │     ├── System prompt enforces citation and faithfulness
   │     └── Returns answer + source filenames
   │
-  └── Node 3b: refuse
+  └── Node 4b: refuse
         └── Returns canned "not found" message with escalation paths
     │
     ▼
@@ -75,10 +78,11 @@ app.py (Streamlit UI)
 | Orchestration | **LangGraph** | Stateful graph enables the grade → route → generate/refuse flow cleanly |
 | Document loading | **LangChain UnstructuredMarkdownLoader** | Handles Markdown formatting natively |
 | Text splitting | **RecursiveCharacterTextSplitter** | Heading-aware splits keep semantic units intact |
-| Embeddings | **OpenAI text-embedding-3-small** | State-of-the-art English embeddings, low cost ($0.02/1M tokens) |
+| Embeddings | **Nebius — `BAAI/bge-en-icl`** | Strong English embeddings; same API key as generation (single-provider) |
 | Vector store | **Chroma** (local, persistent) | Zero infrastructure setup — runs locally, persists to disk |
 | Sparse retrieval | **BM25Retriever** (LangChain community) | Exact keyword matching for tool names and commands |
-| LLM (generation) | **Nebius Token Factory — Meta-Llama-3.1-70B-Instruct-fast** | Required by course; OpenAI-compatible API; fast inference |
+| Reranking | **FlashRank `ms-marco-MiniLM-L-12-v2`** (local ONNX) | Cross-encoder precision without GPU or extra API cost |
+| LLM (generation + eval judge) | **Nebius Token Factory — Meta-Llama-3.1-70B-Instruct-fast** | Required by course; OpenAI-compatible API; fast inference |
 | UI | **Streamlit** | Rapid chatbot UI with minimal code |
 | Environment | **python-dotenv** | Keeps secrets out of code |
 
@@ -98,8 +102,14 @@ Per the handout's advice: *"Your 'I don't know' path matters more than your happ
 - Matches well with `text-embedding-3-small`'s capacity (8,192 token limit — 512 is well within optimal range)
 - 64-token overlap prevents important context from being split across chunk boundaries
 
-### Why Nebius for generation, OpenAI for embeddings?
-The course requires at least one Nebius Token Factory call. Generation is the highest-value call to route through Nebius (the full answer synthesis step), while keeping embeddings on OpenAI where `text-embedding-3-small` provides excellent quality. This also demonstrates that the pipeline is modular — embedding and generation providers are independent.
+### Why Nebius for everything?
+The course requires at least one Nebius Token Factory call — this project routes **all** model calls through Nebius: embeddings (`BAAI/bge-en-icl`), generation, and the eval faithfulness judge. One API key, one billing surface, zero OpenAI dependency. The pipeline stays modular: swapping the embedding or generation provider is a two-line change since Nebius exposes an OpenAI-compatible API.
+
+### Why add a reranker?
+Hybrid retrieval gets the right chunks *into* the candidate pool but ranks them with bi-encoder similarity, which scores question and chunk independently. The FlashRank cross-encoder reads them *together*, catching subtleties like "rollback" vs "deployment" being different intents over the same doc. We retrieve top-8 wide, rerank to the best 4 — better precision in the LLM context window at zero API cost (the model runs locally, ~34 MB).
+
+### How is faithfulness measured?
+`eval.py` uses **LLM-as-judge**: after each answered question, a second Nebius call receives the question, the retrieved chunks, and the generated answer, and returns a JSON verdict on whether every claim is grounded in the chunks. The summary reports faithfulness as a percentage against the ≥90% target in the one-liner.
 
 ---
 
@@ -174,8 +184,7 @@ After running the eval, document findings here:
 
 ### Prerequisites
 - Python 3.11+
-- OpenAI API key
-- Nebius Token Factory API key (get at https://studio.nebius.ai/)
+- Nebius Token Factory API key only (get at https://studio.nebius.ai/ → API Keys)
 
 ### Steps
 
@@ -186,9 +195,9 @@ python -m venv .venv
 # source .venv/bin/activate     # Mac/Linux
 pip install -r requirements.txt
 
-# 2. Set up API keys
+# 2. Set up API key
 cp .env.example .env
-# Edit .env and fill in OPENAI_API_KEY and NEBIUS_API_KEY
+# Edit .env and fill in NEBIUS_API_KEY
 
 # 3. Ingest documents into Chroma (run once)
 python ingest.py
@@ -220,10 +229,10 @@ python eval.py
 - **Cross-document questions** (e.g., "What should I do in my first week?") require the retriever to pull from multiple files. The hybrid approach helped, but re-ranking would further improve result ordering.
 
 ### What I would improve next
-1. **Add a reranker** (e.g., Cohere Rerank or a cross-encoder) to improve ordering of the top-k results — the handout highlights this as a key quality lever.
-2. **Parent-document retrieval** — store small chunks for retrieval but pass larger parent chunks to the LLM for context, reducing information loss at chunk boundaries.
-3. **LangSmith tracing** — enable to trace exactly which chunks were retrieved for each question and measure faithfulness scores programmatically.
-4. **Streamlit multi-turn memory** — add `ConversationBufferMemory` so follow-up questions ("and what about the staging environment?") maintain context.
+1. **Parent-document retrieval** — store small chunks for retrieval but pass larger parent chunks to the LLM for context, reducing information loss at chunk boundaries.
+2. **LangSmith tracing** — enable to trace exactly which chunks were retrieved per question and track faithfulness over time.
+3. **Query rewriting for follow-ups** — multi-turn memory is implemented, but rewriting the follow-up question into a standalone query before retrieval would improve retrieval on pronoun-heavy follow-ups ("and what about staging?").
+4. **Automated freshness pipeline** — re-ingest on a schedule or via Confluence webhooks instead of manual `ingest.py` runs.
 
 ---
 
