@@ -24,7 +24,7 @@ User question  →  LangGraph pipeline:
 | Embedding | Nebius `BAAI/bge-en-icl` | Single API key for whole project; strong English embeddings |
 | Retrieval | Hybrid BM25 + dense (60/40), top-8 | Dense catches semantic intent; BM25 catches exact tool names / acronyms |
 | Reranking | FlashRank `ms-marco-MiniLM-L-12-v2` (local) | Cross-encoder reads question+chunk together; free, no GPU |
-| Generation | Nebius Meta-Llama-3.1-70B-Instruct-fast | Required by course; fast inference |
+| Generation | Nebius Llama-3.3-70B-Instruct | Required by course; fast inference |
 | "I don't know" path | Cross-encoder score threshold (0.30) | Calibrated refusal signal (irrelevant ≈ 0.0x, relevant ≈ 0.9) — embedding cosine is poorly calibrated for this |
 | Eval | LLM-as-judge faithfulness scoring | Measures grounding, not just retrieval — per the handout |
 

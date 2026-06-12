@@ -22,8 +22,24 @@ from dotenv import load_dotenv
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_chroma import Chroma
 from langchain_community.retrievers import BM25Retriever
-from langchain.retrievers import EnsembleRetriever
-from langchain.schema import Document
+from langchain_core.documents import Document
+
+
+class _EnsembleRetriever:
+    """Reciprocal-rank fusion over multiple retrievers (replaces langchain EnsembleRetriever)."""
+    def __init__(self, retrievers, weights):
+        self.retrievers = retrievers
+        self.weights = weights
+
+    def invoke(self, query: str) -> list[Document]:
+        scores: dict[str, float] = {}
+        docs_map: dict[str, Document] = {}
+        for retriever, weight in zip(self.retrievers, self.weights):
+            for rank, doc in enumerate(retriever.invoke(query)):
+                key = doc.page_content[:200]
+                scores[key] = scores.get(key, 0.0) + weight / (rank + 1)
+                docs_map[key] = doc
+        return [docs_map[k] for k in sorted(scores, key=lambda k: scores[k], reverse=True)]
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langgraph.graph import StateGraph, END
 
@@ -36,8 +52,8 @@ RERANK_TOP_N = 4     # ...then rerank down to the best few
 RELEVANCE_THRESHOLD = 0.30  # cross-encoder score floor (0–1); irrelevant ≈ 0.0x
 
 NEBIUS_BASE_URL = "https://api.studio.nebius.ai/v1/"
-EMBEDDING_MODEL = "BAAI/bge-en-icl"
-GENERATION_MODEL = "meta-llama/Meta-Llama-3.1-70B-Instruct-fast"
+EMBEDDING_MODEL = "Qwen/Qwen3-Embedding-8B"
+GENERATION_MODEL = "meta-llama/Llama-3.3-70B-Instruct"
 
 
 # ── State ────────────────────────────────────────────────────────────────────
@@ -98,7 +114,7 @@ def build_retriever():
     sparse = BM25Retriever.from_documents(bm25_docs, k=TOP_K)
 
     # Hybrid: 60% dense, 40% sparse
-    return EnsembleRetriever(retrievers=[dense, sparse], weights=[0.6, 0.4])
+    return _EnsembleRetriever(retrievers=[dense, sparse], weights=[0.6, 0.4])
 
 
 _retriever = None

@@ -54,7 +54,7 @@ LangGraph RAG Pipeline (rag_graph.py)
   │     └── Route → generate OR refuse  (zero API calls — runs locally)
   │
   ├── Node 3a: generate
-  │     ├── LLM: Nebius Token Factory (Meta-Llama-3.1-70B-Instruct-fast)
+  │     ├── LLM: Nebius Token Factory (Llama-3.3-70B-Instruct)
   │     ├── System prompt enforces citation and faithfulness
   │     └── Returns answer + source filenames
   │
@@ -79,7 +79,7 @@ app.py (Streamlit UI)
 | Vector store | **Chroma** (local, persistent) | Zero infrastructure setup — runs locally, persists to disk |
 | Sparse retrieval | **BM25Retriever** (LangChain community) | Exact keyword matching for tool names and commands |
 | Reranking | **FlashRank `ms-marco-MiniLM-L-12-v2`** (local ONNX) | Cross-encoder precision without GPU or extra API cost |
-| LLM (generation + eval judge) | **Nebius Token Factory — Meta-Llama-3.1-70B-Instruct-fast** | Required by course; OpenAI-compatible API; fast inference |
+| LLM (generation + eval judge) | **Nebius Token Factory — Llama-3.3-70B-Instruct** | Required by course; OpenAI-compatible API; fast inference |
 | UI | **Streamlit** | Rapid chatbot UI with minimal code |
 | Environment | **python-dotenv** | Keeps secrets out of code |
 

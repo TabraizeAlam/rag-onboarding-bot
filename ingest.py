@@ -10,7 +10,7 @@ import shutil
 from pathlib import Path
 from dotenv import load_dotenv
 from langchain_community.document_loaders import TextLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 from langchain_chroma import Chroma
 
@@ -22,7 +22,7 @@ COLLECTION_NAME = "onboarding_kb"
 
 # Nebius serves embeddings through an OpenAI-compatible API
 NEBIUS_BASE_URL = "https://api.studio.nebius.ai/v1/"
-EMBEDDING_MODEL = "BAAI/bge-en-icl"
+EMBEDDING_MODEL = "Qwen/Qwen3-Embedding-8B"
 
 
 def get_embeddings():
