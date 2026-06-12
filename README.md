@@ -52,7 +52,7 @@ cp .env.example .env
 # Edit .env and fill in NEBIUS_API_KEY
 ```
 
-Get your Nebius key at: https://studio.nebius.ai/ → API Keys
+Get Nebius key at: https://studio.nebius.ai/ → API Keys
 
 ### 3. Ingest documents
 ```bash
@@ -100,12 +100,3 @@ rag-onboarding-bot/
 ├── .env.example
 └── README.md
 ```
-
-## Submission Checklist
-
-- [ ] GitHub repo with all code pushed
-- [ ] `chroma_db/` added to `.gitignore` (not committed — rebuilt by ingest.py)
-- [ ] `.env` added to `.gitignore` (secrets never committed)
-- [ ] Video demo recorded (≤5 min): show ingest, ask 3–4 questions, show refusal case
-- [ ] Evaluation report: run `python eval.py`, screenshot/copy output
-- [ ] Google Doc with: project overview, corpus description, chunking decisions, eval results, learnings
