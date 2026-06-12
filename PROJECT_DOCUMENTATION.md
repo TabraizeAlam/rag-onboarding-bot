@@ -162,13 +162,120 @@ The knowledge base consists of 7 synthetic Markdown documents simulating a real 
 
 ### Evaluation Metrics (to fill in after running `eval.py`)
 
-| Metric | Result |
-|--------|--------|
-| Total questions | 15 |
-| Correctly answered | _/13 |
-| Correctly refused (out-of-scope) | _/2 |
-| Avg. docs retrieved (answered questions) | _ |
-| Hallucination observed | Yes / No |
+====================================================================================================
+ANSWERS
+
+Q1: How do I set up my local development environment?
+A:  According to `02_dev_environment_setup.md`, to set up your local development environment, you need to install the following tools with the specified versions:
+- Git (>= 2.40) via `brew install git` or [git-scm.com](https://git-scm.com)
+- Docker Desktop (>= 4.30) from [docker.com/products/docker-desk...
+Sources: 07_onboarding_checklist.md, 02_dev_environment_setup.md
+Judge: faithful=False — The answer mentions `07_onboarding_checklist.md`, which is not present in the retrieved context.
+
+Q2: What tools do I need to install before cloning a repo?
+A:  According to 02_dev_environment_setup.md, the following tools need to be installed before cloning any repository:
+1. Git (version >= 2.40)
+2. Docker Desktop (version >= 4.30)
+3. Node.js (version 20 LTS)
+4. Python (version 3.11)
+5. kubectl (version >= 1.28)
+6. Terraform (version >= 1.7)
+7. AWS CLI (v...
+Sources: 02_dev_environment_setup.md
+Judge: faithful=True — The answer accurately lists all the tools and their required versions as specified in the retrieved context.
+
+Q3: How do I configure AWS SSO?
+A:  According to 02_dev_environment_setup.md, to configure AWS SSO, you should run the command `aws configure sso` and provide the following information: 
+- SSO Start URL: https://acme.awsapps.com/start
+- SSO Region: us-west-2
+- Default region: us-west-2
+- Default output format: json
+The profile name mu...
+Sources: 02_dev_environment_setup.md, 07_onboarding_checklist.md, 06_architecture_overview.md
+Judge: faithful=True — The answer accurately reflects the information provided in the retrieved context for configuring AWS SSO.
+
+Q4: What is the deployment process to production?
+A:  According to `03_deployment_process.md`, the deployment process to production involves the following steps: 
+
+1. Merging your PR to `main` (which triggers an auto-deploy to staging).
+2. Verifying that staging looks good.
+3. Creating a release tag using `git tag v1.2.3 -m "Release v1.2.3: [brief desc...
+Sources: 03_deployment_process.md, 07_onboarding_checklist.md
+Judge: faithful=True — The answer accurately reflects the deployment process to production as described in the retrieved context.
+
+Q5: How do I roll back a production deployment?
+A:  According to 03_deployment_process.md, if a production deploy causes issues, you can roll back via Helm (which is the fastest method) by running the command `helm rollback <service-name> -n production`. Alternatively, you can redeploy the previous image tag via GitHub Actions by going to Actions, fi...
+Sources: 03_deployment_process.md, 07_onboarding_checklist.md
+Judge: faithful=True — The answer accurately reflects the information provided in the retrieved context regarding the rollback process.
+
+Q6: What are the PR review requirements?
+A:  According to 05_engineering_processes.md, the PR review requirements include: 
+- At least 1 approval from a team member (not the author)
+- 2 approvals required for specific changes (CI/CD pipelines, Terraform infrastructure, shared libraries, or production secrets)
+- All CI checks must pass (lint, t...
+Sources: 05_engineering_processes.md
+Judge: faithful=True — Every factual claim in the answer is directly supported by the retrieved context under the PR Requirements section.
+
+Q7: What is the branching strategy the team uses?
+A:  According to 05_engineering_processes.md, the team uses **trunk-based development** with specific branch types: `main` for the always-deployable protected branch, `feature/<ticket-id>-short-description` for short-lived feature branches, and `hotfix/<description>` for P0/P1 production fixes only.
+Sources: 05_engineering_processes.md
+Judge: faithful=True — The answer accurately reflects the branching strategy described in the retrieved context.
+
+Q8: What is the incident severity classification?
+A:  According to 05_engineering_processes.md, the incident severity classification is as follows: 
+- P0: Production down, all users affected
+- P1: Major feature broken, significant user impact
+- P2: Partial degradation, workaround exists
+- P3: Minor issue, cosmetic.
+Sources: 05_engineering_processes.md
+Judge: faithful=True — The answer directly quotes the severity levels and descriptions from the retrieved context without adding or modifying any information.
+
+Q9: Who is the Engineering Manager?
+A:  According to 01_team_overview.md, the Engineering Manager is David Park (david.park@acme.com).
+Sources: 01_team_overview.md
+Judge: faithful=True — The retrieved context explicitly states that the Engineering Manager is David Park (david.park@acme.com) under the Team Overview section.
+
+Q10: What Slack channels should I join as a new hire?
+A:  According to 04_tools_and_access.md, as a new hire, you should join the following Slack channels immediately:
+
+- `#general` — company-wide announcements
+- `#eng-announcements` — engineering-wide announcements
+- `#team-general` — Platform Engineering team channel
+- `#infra-team`, `#devex-team`, or `#...
+Sources: 01_team_overview.md, 07_onboarding_checklist.md, 04_tools_and_access.md
+Judge: faithful=None — Judge output unparseable: {"faithful": false, "reason": The answer mentions 04_tools_and_access.md and 07_onboarding_checklist
+
+Q11: What should I do in my first week?
+A:  According to `07_onboarding_checklist.md`, in your first week, you should follow the "Week 1: Get Set Up" checklist, which includes tasks such as receiving your laptop, setting up your Google Workspace account, joining Slack, attending the New Hire Orientation, and meeting with your Engineering Mana...
+Sources: 07_onboarding_checklist.md
+Judge: faithful=None — Judge output unparseable: {"faithful": false, "reason": The retrieved context is actually titled "# New Hire Onboarding Checkl
+
+Q12: How do I request access to Snowflake?
+A:  According to 04_tools_and_access.md, to request access to Snowflake, you should submit a request via the IT portal at `it.internal.acme.com` and select "Snowflake Read". Your manager must approve the request.
+Sources: 04_tools_and_access.md
+Judge: faithful=True — Every factual claim in the answer is directly supported by the information provided in the retrieved context.
+
+Q13: What databases does Acme use and where are they hosted?
+A:  According to 06_architecture_overview.md, Acme Corp uses the following databases: 
+- PostgreSQL, which is hosted on AWS RDS in Multi-AZ mode with automated backups.
+- Redis, which is hosted on AWS ElastiCache with 2 replicas.
+- Kafka, which is hosted on AWS MSK (Managed Streaming for Kafka) with 3 b...
+Sources: 06_architecture_overview.md, 04_tools_and_access.md
+Judge: faithful=True — Every factual claim in the answer is directly supported by the retrieved context in the section titled 'Databases'.
+
+Q14: What is the company stock price?
+A:  I couldn't find relevant information in the team knowledge base to answer your question. Please check the Confluence wiki, ask in the appropriate Slack channel (#devex-team, #infra-team, #data-platform), or reach out to your onboarding buddy.
+Sources: none
+
+Q15: Can you write me a Python function to sort a list?
+A:  I couldn't find relevant information in the team knowledge base to answer your question. Please check the Confluence wiki, ask in the appropriate Slack channel (#devex-team, #infra-team, #data-platform), or reach out to your onboarding buddy.
+Sources: none
+
+====================================================================================================
+SUMMARY
+  In-scope questions answered:  13/13
+  Correct refusals:             2/2 out-of-scope questions
+  Faithfulness:                 10/11 = 91%  (target: >=90%)
 
 ### Failure Analysis Template
 
