@@ -2,14 +2,20 @@
 LangGraph-based RAG pipeline — Nebius-only (embeddings + generation).
 
 Graph nodes:
-  retrieve  →  rerank_and_grade  →  generate  (if relevant docs found)
-                                 →  refuse    (if no relevant docs)
+  rewrite_query  →  retrieve  →  rerank_and_grade  →  generate  (docs found)
+                                                   →  refuse    (true junk)
 
-The FlashRank cross-encoder does double duty: it reorders the hybrid
-retrieval candidates AND its calibrated scores gate the refusal path.
-(Embedding cosine similarity is a poor refusal signal for BGE-family
-models — unrelated pairs still score ~0.5 — while cross-encoder scores
-sit near 0 for irrelevant passages and near 1 for relevant ones.)
+Design notes (measured on this corpus):
+- Users type informally with typos ("deployment pipleine"). The rewrite
+  node turns the message into a clean standalone search query first —
+  this also folds in chat history so follow-ups retrieve correctly.
+- The FlashRank cross-encoder reorders candidates AND gates refusal.
+  Its scores are bimodal at the extremes: true junk ("stock price",
+  "weather") scores ~0.0001 across ALL chunks, while topically-related
+  text scores 10–100x higher even when phrased differently than the
+  docs (e.g. "development process" vs "engineering processes" ≈ 0.013).
+  So the gate hard-refuses only below REFUSAL_FLOOR; mid-scoring docs
+  are passed to the LLM, whose grounded prompt makes the final call.
 """
 
 from __future__ import annotations
@@ -49,7 +55,7 @@ CHROMA_DIR = Path(__file__).parent / "chroma_db"
 COLLECTION_NAME = "onboarding_kb"
 TOP_K = 8            # retrieve wide...
 RERANK_TOP_N = 4     # ...then rerank down to the best few
-RELEVANCE_THRESHOLD = 0.30  # cross-encoder score floor (0–1); irrelevant ≈ 0.0x
+REFUSAL_FLOOR = 0.005  # cross-encoder score; true junk ≈ 0.0001, related text ≥ 0.005
 
 NEBIUS_BASE_URL = "https://api.studio.nebius.ai/v1/"
 EMBEDDING_MODEL = "Qwen/Qwen3-Embedding-8B"
@@ -60,6 +66,7 @@ GENERATION_MODEL = "meta-llama/Llama-3.3-70B-Instruct"
 
 class RAGState(TypedDict):
     question: str
+    search_query: str  # cleaned/rewritten version of question used for retrieval
     chat_history: list[tuple[str, str]]  # (role, content) pairs for multi-turn
     documents: list[Document]
     relevance_scores: list[float]
@@ -140,16 +147,49 @@ def get_reranker():
 
 # ── Graph nodes ───────────────────────────────────────────────────────────────
 
+def rewrite_query(state: RAGState) -> dict:
+    """
+    Normalize the user's message into a clean standalone search query:
+    fixes typos, expands informal phrasing, and resolves follow-up
+    references ("and how do I roll that back?") using recent history.
+    Falls back to the raw question if the rewrite fails.
+    """
+    question = state["question"]
+    history = state.get("chat_history", [])
+
+    ctx = ""
+    if history:
+        recent = "\n".join(f"{role}: {content[:200]}" for role, content in history[-4:])
+        ctx = f"Recent conversation for context:\n{recent}\n\n"
+
+    prompt = (
+        f"{ctx}"
+        "Rewrite the user message below as ONE clear, standalone question for "
+        "searching team documentation. Fix any typos. Keep specific tool and "
+        "system names. Output ONLY the rewritten question, nothing else.\n\n"
+        f"User message: {question}"
+    )
+    try:
+        rewritten = get_llm(temperature=0.0).invoke(prompt).content.strip().strip('"')
+        if not rewritten or len(rewritten) > 300:
+            rewritten = question
+    except Exception:
+        rewritten = question
+    return {"search_query": rewritten}
+
+
 def retrieve(state: RAGState) -> dict:
-    docs = get_retriever().invoke(state["question"])
+    query = state.get("search_query") or state["question"]
+    docs = get_retriever().invoke(query)
     return {"documents": docs}
 
 
 def rerank_and_grade(state: RAGState) -> dict:
     """
-    Cross-encoder rerank: reads question + chunk together for precise
-    relevance ordering. The same calibrated scores gate the refusal path —
-    if no passage clears RELEVANCE_THRESHOLD, route to refuse.
+    Cross-encoder rerank: reads query + chunk together for precise relevance
+    ordering. Hard-refuse only when even the best passage scores below
+    REFUSAL_FLOOR (true junk territory, ~0.0001). Mid-scoring passages are
+    kept and passed to the LLM, whose grounded prompt makes the final call.
     Runs locally; zero API calls.
     """
     from flashrank import RerankRequest
@@ -158,8 +198,9 @@ def rerank_and_grade(state: RAGState) -> dict:
     if not docs:
         return {"documents": [], "relevance_scores": [], "refused": True}
 
+    query = state.get("search_query") or state["question"]
     request = RerankRequest(
-        query=state["question"],
+        query=query,
         passages=[{"id": i, "text": d.page_content} for i, d in enumerate(docs)],
     )
     results = get_reranker().rerank(request)
@@ -167,7 +208,7 @@ def rerank_and_grade(state: RAGState) -> dict:
     keep = [
         (float(r["score"]), docs[r["id"]])
         for r in results[:RERANK_TOP_N]
-        if r["score"] >= RELEVANCE_THRESHOLD
+        if r["score"] >= REFUSAL_FLOOR
     ]
 
     return {
@@ -225,12 +266,14 @@ def route_after_grading(state: RAGState) -> str:
 
 def build_graph():
     graph = StateGraph(RAGState)
+    graph.add_node("rewrite_query", rewrite_query)
     graph.add_node("retrieve", retrieve)
     graph.add_node("rerank_and_grade", rerank_and_grade)
     graph.add_node("generate", generate)
     graph.add_node("refuse", refuse)
 
-    graph.set_entry_point("retrieve")
+    graph.set_entry_point("rewrite_query")
+    graph.add_edge("rewrite_query", "retrieve")
     graph.add_edge("retrieve", "rerank_and_grade")
     graph.add_conditional_edges("rerank_and_grade", route_after_grading, {
         "generate": "generate",
@@ -253,6 +296,7 @@ def ask(question: str, chat_history: list[tuple[str, str]] | None = None) -> dic
     """Public API: ask a question, get back answer + sources + retrieved context."""
     initial = RAGState(
         question=question,
+        search_query="",
         chat_history=chat_history or [],
         documents=[],
         relevance_scores=[],
@@ -265,6 +309,7 @@ def ask(question: str, chat_history: list[tuple[str, str]] | None = None) -> dic
         "answer": result["answer"],
         "sources": result["sources"],
         "refused": result.get("refused", False),
+        "search_query": result.get("search_query", ""),
         "num_docs_retrieved": len(result["documents"]),
         "relevance_scores": result.get("relevance_scores", []),
         "context": [d.page_content for d in result["documents"]],

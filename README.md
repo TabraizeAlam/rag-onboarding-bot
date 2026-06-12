@@ -10,9 +10,10 @@ Built for The Gen Academy — Week 2 Project (Track 2: LangChain + LangGraph).
 docs/*.md  →  ingest.py  →  Chroma (vector store)
                                ↓
 User question  →  LangGraph pipeline:
-                    retrieve (hybrid BM25 + dense, top-8)
+                    rewrite_query (LLM fixes typos/phrasing, resolves follow-ups)
+                    → retrieve (hybrid BM25 + dense, top-8)
                     → rerank_and_grade (FlashRank cross-encoder:
-                        reorders to top-4 AND gates refusal by score)
+                        reorders to top-4; hard-refuses only true junk)
                     → generate (Nebius Llama-70B) or refuse
                     → Streamlit UI (multi-turn + context inspector)
 ```
@@ -25,7 +26,8 @@ User question  →  LangGraph pipeline:
 | Retrieval | Hybrid BM25 + dense (60/40), top-8 | Dense catches semantic intent; BM25 catches exact tool names / acronyms |
 | Reranking | FlashRank `ms-marco-MiniLM-L-12-v2` (local) | Cross-encoder reads question+chunk together; free, no GPU |
 | Generation | Nebius Llama-3.3-70B-Instruct | Required by course; fast inference |
-| "I don't know" path | Cross-encoder score threshold (0.30) | Calibrated refusal signal (irrelevant ≈ 0.0x, relevant ≈ 0.9) — embedding cosine is poorly calibrated for this |
+| Query rewriting | LLM pre-step before retrieval | Real users type typos and informal phrasing; rewrite also makes follow-up questions standalone |
+| "I don't know" path | Two-tier: cross-encoder floor (0.005) + grounded LLM judgment | Measured: true junk scores ≈ 0.0001 on every chunk; related-but-differently-phrased text scores 10–100× higher and deserves the LLM's call |
 | Eval | LLM-as-judge faithfulness scoring | Measures grounding, not just retrieval — per the handout |
 
 **Only one API key needed: Nebius.** Both embeddings and generation run through Nebius Token Factory's OpenAI-compatible API.

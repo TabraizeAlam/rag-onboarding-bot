@@ -43,22 +43,27 @@ ingest.py
     ▼
 LangGraph RAG Pipeline (rag_graph.py)
   │
-  ├── Node 1: retrieve
+  ├── Node 1: rewrite_query
+  │     └── LLM normalizes the message: fixes typos, makes follow-ups
+  │         standalone using chat history ("deployment pipleine" →
+  │         "What is the deployment pipeline process?")
+  │
+  ├── Node 2: retrieve
   │     ├── Dense: Chroma similarity search
   │     ├── Sparse: BM25Retriever
-  │     └── EnsembleRetriever (60/40 hybrid, top-k=8)
+  │     └── Reciprocal-rank fusion (60/40 hybrid, top-k=8)
   │
-  ├── Node 2: rerank_and_grade
+  ├── Node 3: rerank_and_grade
   │     ├── FlashRank cross-encoder (ms-marco-MiniLM-L-12-v2) → top 4
-  │     ├── Same calibrated scores gate refusal (threshold 0.30)
+  │     ├── Hard refusal only below floor 0.005 (measured: junk ≈ 0.0001)
   │     └── Route → generate OR refuse  (zero API calls — runs locally)
   │
-  ├── Node 3a: generate
+  ├── Node 4a: generate
   │     ├── LLM: Nebius Token Factory (Llama-3.3-70B-Instruct)
   │     ├── System prompt enforces citation and faithfulness
   │     └── Returns answer + source filenames
   │
-  └── Node 3b: refuse
+  └── Node 4b: refuse  (only when no chunk clears the junk floor)
         └── Returns canned "not found" message with escalation paths
     │
     ▼
@@ -91,7 +96,7 @@ app.py (Streamlit UI)
 The knowledge base contains both semantic content ("what are the team's communication norms?") and exact-match content (tool names like "Tailscale", "ArgoCD", port numbers like "8080", commands like `aws configure sso`). Pure dense search loses exact matches; pure BM25 misses semantic paraphrasing. Combining both at 60/40 gives the best of both.
 
 ### Why the "I don't know" path first?
-Per the handout's advice: *"Your 'I don't know' path matters more than your happy path."* The relevance grading node was designed before the generation node. If cosine similarity between the question embedding and all retrieved chunks is below 0.25, the pipeline refuses rather than hallucinating. This is critical for an onboarding tool — a new hire who gets a wrong answer about a deployment process could break production.
+Per the handout's advice: *"Your 'I don't know' path matters more than your happy path."* The refusal gate was designed before the generation node, and then **calibrated against measured data**: on this corpus, truly out-of-scope questions ("stock price", "weather") score ≈ 0.0001 on every chunk with the cross-encoder, while topically-related questions score 10–100× higher even when phrased differently than the docs. The pipeline therefore hard-refuses only below a 0.005 floor; mid-scoring chunks go to the LLM, whose grounded prompt instructs it to say what the docs do and don't cover. This is critical for an onboarding tool — a new hire who gets a wrong answer about a deployment process could break production.
 
 ### Why 1,500-character (~375-token) chunks?
 - Small enough to stay focused on one topic per chunk (a single markdown section)
