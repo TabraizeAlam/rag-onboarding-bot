@@ -1,4 +1,4 @@
-# Tools and Access Guide
+﻿# Tools and Access Guide
 
 This page describes every tool the Data Platform team uses, what it's for, and how to get access.
 
@@ -6,14 +6,14 @@ This page describes every tool the Data Platform team uses, what it's for, and h
 
 ## Snowflake — Cloud Data Warehouse
 
-**What it is:** Snowflake is AIMCo's central data warehouse. All Bronze, Silver, and Gold layer data lives here. It is the authoritative source for investment analytics, reporting, and downstream data products.
+**What it is:** Snowflake is Meridian's central data warehouse. All Bronze, Silver, and Gold layer data lives here. It is the authoritative source for investment analytics, reporting, and downstream data products.
 
 **How to access:**
-- URL: `aimco.snowflakecomputing.com` (requires VPN or corporate network)
-- Login: Azure AD SSO with your @aimco.ca account
+- URL: `meridian.snowflakecomputing.com` (requires VPN or corporate network)
+- Login: Azure AD SSO with your @meridian.ca account
 - Default role: `DATA_DEVELOPER_ROLE` (provisioned on Day 1)
 
-**Key features used at AIMCo:**
+**Key features used at Meridian:**
 - **Time Travel**: query data as it was at any point in the last 90 days — critical for debugging pipeline issues and reprocessing
 - **Data Sharing**: securely share curated Gold-layer datasets with external parties (auditors, consultants) without copying data
 - **Tasks & Streams**: used for change-data-capture (CDC) patterns on source tables
@@ -32,7 +32,7 @@ This page describes every tool the Data Platform team uses, what it's for, and h
 - Login: Azure AD SSO
 - Do not create personal clusters — use `DATA_TEAM_SHARED` for dev work
 
-**Key uses at AIMCo:**
+**Key uses at Meridian:**
 - **File-based ingestion**: loading vendor CSV/XML/JSON files from Azure Blob Storage into Snowflake Bronze
 - **Complex transformations**: risk calculations, return attribution, and large joins that benefit from Spark's parallelism
 - **Orchestration**: Databricks Workflows schedules and sequences the entire daily pipeline run
@@ -70,7 +70,7 @@ dbt docs generate && dbt docs serve    # browse the data catalog locally
 
 **What it is:** Atlan is the team's metadata platform. It provides a searchable catalog of all data assets, tracks lineage (where did this data come from?), manages ownership, and enforces classification policies.
 
-**How to access:** `aimco.atlan.com` — SSO login. Request to be added to the `Data Platform` workspace from the #data-governance channel.
+**How to access:** `meridian.atlan.com` — SSO login. Request to be added to the `Data Platform` workspace from the #data-governance channel.
 
 **What you must do in Atlan:**
 1. **Before building**: search Atlan to check if the data you need already exists as a certified Gold asset.
@@ -85,7 +85,7 @@ dbt docs generate && dbt docs serve    # browse the data catalog locally
 
 **What it is:** Soda provides automated data quality monitoring. Every Gold-layer model has a set of Soda checks that run after each pipeline execution. Results are visible in Soda Cloud and failures alert the on-call engineer.
 
-**How to access:** `cloud.soda.io` — ask your team lead to add you to the `AIMCo Data Platform` organization.
+**How to access:** `cloud.soda.io` — ask your team lead to add you to the `Meridian Data Platform` organization.
 
 **Writing checks:**
 Checks live in the `checks/` directory of the `dbt-platform` repo, mirroring the `models/` directory structure. File naming: `<model_name>.yml`.
@@ -123,7 +123,7 @@ Power BI connects to Snowflake Gold-layer tables directly using DirectQuery or I
 
 **What it is:** All code (dbt models, Databricks notebooks, Python ingestion scripts, Soda checks) lives in Azure DevOps Repos. CI/CD pipelines are also defined here as YAML pipeline files.
 
-**URL:** `dev.azure.com/aimco`
+**URL:** `dev.azure.com/meridian`
 
 **Branching strategy:**
 - `main` — production-ready code; direct commits not allowed

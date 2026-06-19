@@ -1,4 +1,4 @@
-# Project Documentation — AIMCo Data Platform Onboarding RAG Bot
+﻿# Project Documentation — Meridian Data Platform Onboarding RAG Bot
 
 **Course:** The Gen Academy — Mastering Agentic AI Bootcamp  
 **Week:** 2 — Gen AI Building Blocks  
@@ -9,7 +9,7 @@
 
 ## 1. Project One-Liner
 
-> My RAG app helps **new Data Platform team members** answer **onboarding, environment setup, pipeline workflow, and data governance questions** from **AIMCo's internal team knowledge base (7 Confluence-style markdown documents, ~8,000 words, grounded in publicly available AIMCo information)** via a **Streamlit chatbot** with **≥90% faithfulness** and responses under **5 seconds**.
+> My RAG app helps **new Data Platform team members** answer **onboarding, environment setup, pipeline workflow, and data governance questions** from **Meridian's internal team knowledge base (7 Confluence-style markdown documents, ~8,000 words, grounded in publicly available Meridian information)** via a **Streamlit chatbot** with **≥90% faithfulness** and responses under **5 seconds**.
 
 ---
 
@@ -17,8 +17,8 @@
 
 | Field | Decision |
 |-------|----------|
-| **Use case** | New Data Platform team members at AIMCo ask questions like "How do I set up Snowflake?" or "What is the medallion architecture?" through a Streamlit chat interface backed by the team's internal knowledge base. |
-| **Corpus** | 7 Markdown documents (~8,000 words total) covering: data platform team overview, developer environment setup, data pipeline workflow, tools & access, data governance framework, platform architecture, and onboarding checklist. All content is grounded in publicly available AIMCo information (annual reports, corporate website, public job postings). |
+| **Use case** | New Data Platform team members at Meridian ask questions like "How do I set up Snowflake?" or "What is the medallion architecture?" through a Streamlit chat interface backed by the team's internal knowledge base. |
+| **Corpus** | 7 Markdown documents (~8,000 words total) covering: data platform team overview, developer environment setup, data pipeline workflow, tools & access, data governance framework, platform architecture, and onboarding checklist. All content is grounded in publicly available Meridian information (annual reports, corporate website, public job postings). |
 | **Ingestion + cleaning** | Documents are loaded from a local `docs/` directory using LangChain's `TextLoader`. Cleaning strips excessive whitespace, normalizes line endings, and removes blank lines. Each chunk is tagged with its source filename for citation. |
 | **Ingestion + freshness** | Documents are ingested on-demand by running `ingest.py`. In a production setup, this would be triggered by a Confluence webhook on page update, with a freshness SLA of under 1 hour. |
 | **Chunking + embedding** | Recursive character splitting at **1,500 characters (~375 tokens) with 200-character overlap**, using `["\n## ", "\n### ", "\n\n", "\n", " "]` as separators — this respects Markdown heading boundaries so chunks stay semantically coherent. Embedding model: **`Qwen/Qwen3-Embedding-8B` via Nebius Token Factory** — strong multilingual embeddings, served through the same API key as generation (single-provider setup). |
@@ -120,11 +120,11 @@ An earlier design graded relevance with embedding cosine similarity, but `Qwen3-
 
 ## 5. Corpus Details
 
-The knowledge base consists of 7 Markdown documents tailored to AIMCo's Data Platform team, all grounded in publicly available information (AIMCo's annual reports, corporate website at aimco.alberta.ca, and public job postings). No internal, confidential, or proprietary data is used.
+The knowledge base consists of 7 Markdown documents tailored to Meridian's Data Platform team, all grounded in publicly available information (Meridian's annual reports, corporate website at meridianinvestments.ca, and public job postings). No internal, confidential, or proprietary data is used.
 
 | File | Content | ~Word Count |
 |------|---------|-------------|
-| `01_data_platform_team.md` | AIMCo's mandate as a Crown corporation, Data & Analytics team overview, Business Transformation Program, roles and responsibilities | ~600 |
+| `01_data_platform_team.md` | Meridian's mandate as a Crown corporation, Data & Analytics team overview, Business Transformation Program, roles and responsibilities | ~600 |
 | `02_environment_setup.md` | Prerequisites, Snowflake SSO setup, Databricks access, dbt profile configuration, Atlan, Soda Cloud, Azure DevOps access | ~750 |
 | `03_data_pipeline_workflow.md` | Medallion architecture (Bronze/Silver/Gold), data source types, dbt model development, Soda checks, PR process, deployment, orchestration | ~900 |
 | `04_tools_and_access.md` | Snowflake, Databricks, dbt, Atlan, Soda, Power BI, Azure DevOps — how each is used and how to get access | ~850 |
@@ -135,7 +135,7 @@ The knowledge base consists of 7 Markdown documents tailored to AIMCo's Data Pla
 **Total:** ~5,650 words → ~30–38 chunks after splitting at 1,500 characters with 200-character overlap.
 
 **Why this corpus is authentic and differentiated:**
-The documents reflect the real tools (Databricks, dbt, Snowflake, Soda, Atlan, Power BI) and investment management domain context (Crown corporation, pension fund mandate, medallion architecture for investment data) that characterize AIMCo's actual data platform work. This gives the RAG bot a genuine use-case narrative: it could be deployed as an internal tool to help onboard new data developers, reducing the time managers spend answering repetitive setup and process questions.
+The documents reflect the real tools (Databricks, dbt, Snowflake, Soda, Atlan, Power BI) and investment management domain context (Crown corporation, pension fund mandate, medallion architecture for investment data) that characterize Meridian's actual data platform work. This gives the RAG bot a genuine use-case narrative: it could be deployed as an internal tool to help onboard new data developers, reducing the time managers spend answering repetitive setup and process questions.
 
 ---
 
@@ -151,14 +151,14 @@ The documents reflect the real tools (Databricks, dbt, Snowflake, Soda, Atlan, P
 | 4 | Setup | Where do I request Snowflake access for the CONFIDENTIAL data role? | Retrieved, answered |
 | 5 | Architecture | What are the Bronze, Silver, and Gold layers in the data platform? | Retrieved, answered |
 | 6 | Architecture | What is the medallion architecture? | Retrieved, answered |
-| 7 | Architecture | Which cloud does AIMCo's data platform run on? | Retrieved, answered |
+| 7 | Architecture | Which cloud does Meridian's data platform run on? | Retrieved, answered |
 | 8 | Pipeline | What is the branching strategy and how do I name my feature branch? | Retrieved, answered |
 | 9 | Pipeline | What needs to happen before a new pipeline can go to production? | Retrieved, answered |
 | 10 | Pipeline | How do dbt models get deployed to production? | Retrieved, answered |
 | 11 | Governance | What is Atlan used for and what do I need to do there? | Retrieved, answered |
 | 12 | Governance | How do I write a Soda data quality check? | Retrieved, answered |
 | 13 | Onboarding | What should I do in my first week as a new team member? | Retrieved, answered (cross-doc) |
-| 14 | Out-of-scope | What is AIMCo's current portfolio return this quarter? | **Refused** (correct) |
+| 14 | Out-of-scope | What is Meridian's current portfolio return this quarter? | **Refused** (correct) |
 | 15 | Out-of-scope | What is the weather forecast for Edmonton tomorrow? | **Refused** (correct) |
 
 *Run `python eval.py` to generate live results against your Chroma DB and paste the summary output below.*
@@ -227,10 +227,10 @@ python eval.py
 - **Hybrid retrieval** outperformed pure dense search on questions involving exact tool names (e.g., "Atlan", "Soda", "dbt"). BM25 caught these where embeddings softened them.
 - **Source citation** in the system prompt was effective — the LLM consistently named the source file, making it easy to verify faithfulness.
 - **Query rewriting node** fixed false refusals on informal/typo-heavy queries. "how do i conect to snwflake" correctly rewrites to "How do I connect to Snowflake?" before retrieval.
-- **Refusal path** worked cleanly for out-of-scope questions. The cross-encoder floor (0.005) is well-calibrated: investment portfolio questions ("what's AIMCo's quarterly return?") scored ≈ 0.0001 on every chunk.
+- **Refusal path** worked cleanly for out-of-scope questions. The cross-encoder floor (0.005) is well-calibrated: investment portfolio questions ("what's Meridian's quarterly return?") scored ≈ 0.0001 on every chunk.
 
 ### What was harder than expected
-- **Domain calibration of the refusal gate**: investment-adjacent but out-of-scope questions (e.g., "what is AIMCo's AUM?") may score higher than true junk if the corpus mentions AIMCo's mandate. The LLM's grounded prompt instructs it to only answer from docs, which catches these edge cases.
+- **Domain calibration of the refusal gate**: investment-adjacent but out-of-scope questions (e.g., "what is Meridian's AUM?") may score higher than true junk if the corpus mentions Meridian's mandate. The LLM's grounded prompt instructs it to only answer from docs, which catches these edge cases.
 - **Cross-document questions** (e.g., "What should I do in my first week?") require the retriever to pull from both the checklist and the team overview. The hybrid approach helped, but the answer synthesizes across two docs.
 
 ### What I would improve next
@@ -254,4 +254,4 @@ python eval.py
 
 ---
 
-*Built with LangChain, LangGraph, Chroma, FlashRank, and Nebius Token Factory. Corpus grounded in publicly available AIMCo information.*
+*Built with LangChain, LangGraph, Chroma, FlashRank, and Nebius Token Factory. Corpus grounded in publicly available Meridian information.*

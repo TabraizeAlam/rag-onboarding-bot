@@ -1,10 +1,10 @@
-# AIMCo Data Platform Onboarding RAG Bot
+﻿# Meridian Data Platform Onboarding RAG Bot
 
-**One-liner:** This RAG app helps new Data Platform team members at AIMCo answer onboarding questions — from environment setup to data governance — via a Streamlit chatbot with ≥90% faithfulness.
+**One-liner:** This RAG app helps new Data Platform team members at Meridian answer onboarding questions — from environment setup to data governance — via a Streamlit chatbot with ≥90% faithfulness.
 
 Built for The Gen Academy — Week 2 Project (Track 2: LangChain + LangGraph).
 
-> **Corpus note:** All knowledge base documents are grounded in publicly available AIMCo information
+> **Corpus note:** All knowledge base documents are grounded in publicly available Meridian information
 > (annual reports, corporate website, public job postings). No internal, confidential, or proprietary
 > data is used.
 
@@ -87,7 +87,7 @@ To use your own Confluence/team docs:
 
 ```
 rag-onboarding-bot/
-├── docs/                    # Knowledge base (7 markdown files — AIMCo Data Platform)
+├── docs/                    # Knowledge base (7 markdown files — Meridian Data Platform)
 │   ├── 01_data_platform_team.md
 │   ├── 02_environment_setup.md
 │   ├── 03_data_pipeline_workflow.md

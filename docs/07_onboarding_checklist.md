@@ -1,12 +1,12 @@
-# New Hire Onboarding Checklist — Data Platform Team
+﻿# New Hire Onboarding Checklist — Data Platform Team
 
-Welcome to the AIMCo Data Platform team! This checklist guides you through your first four weeks. Work through it in order — each week builds on the last.
+Welcome to the Meridian Data Platform team! This checklist guides you through your first four weeks. Work through it in order — each week builds on the last.
 
 ---
 
 ## Before Day 1 (done by your manager or IT)
 
-- [ ] Azure AD account (@aimco.ca) created
+- [ ] Azure AD account (@meridian.ca) created
 - [ ] Laptop provisioned with Windows 11
 - [ ] VPN (GlobalProtect) configured
 - [ ] Snowflake `DATA_DEVELOPER_ROLE` provisioned
@@ -21,7 +21,7 @@ Welcome to the AIMCo Data Platform team! This checklist guides you through your 
 
 ### Day 1 (Monday)
 - [ ] Complete HR paperwork and laptop security setup (bitlocker, MDE, Intune enrollment)
-- [ ] Activate @aimco.ca account and set up MFA
+- [ ] Activate @meridian.ca account and set up MFA
 - [ ] Join Teams channels: `#data-platform-team`, `#data-governance`, `#data-platform-help`, `#business-transformation`
 - [ ] Meet your **onboarding buddy** (assigned by your manager) — first 1:1 on Day 1
 - [ ] Get your onboarding buddy's contact and calendar
@@ -72,13 +72,13 @@ Welcome to the AIMCo Data Platform team! This checklist guides you through your 
 
 ### Goal: understand the investment domain context
 
-- [ ] Read AIMCo's most recent Annual Report (available at aimco.alberta.ca) — focus on:
+- [ ] Read Meridian's most recent Annual Report (available at meridianinvestments.ca) — focus on:
   - Investment framework and asset classes
   - Performance reporting methodology
   - Client fund descriptions
 - [ ] Schedule a 30-minute intro meeting with one investment analyst who consumes your team's data
 - [ ] Review the Power BI reports your team's Gold models power — understand what each report is answering for the business
-- [ ] Complete AIMCo's mandatory Information Security Awareness training (assigned in your Learning portal)
+- [ ] Complete Meridian's mandatory Information Security Awareness training (assigned in your Learning portal)
 - [ ] Complete the Data Classification Policy training (assigned by your manager)
 
 ### Technical deepening
@@ -130,7 +130,7 @@ Once settled in, every data developer on the team is responsible for:
 |------|---------------|
 | Manager / Team Lead | Your direct manager (see your org chart in Teams) |
 | Onboarding Buddy | Assigned on Day 1 |
-| IT Service Desk | `servicedesk@aimco.ca` or IT Help channel in Teams |
+| IT Service Desk | `servicedesk@meridian.ca` or IT Help channel in Teams |
 | Data Governance Lead | `#data-governance` channel |
 | Databricks / Platform issues | `#data-platform-team` channel |
 | HR / Payroll | HR Connect portal |
@@ -143,10 +143,10 @@ Once settled in, every data developer on the team is responsible for:
 |------|-------|
 | Code (dbt, notebooks, scripts) | Azure DevOps Repos — `DataPlatform` project |
 | Work tickets and backlog | Azure DevOps Boards |
-| Data catalog and lineage | Atlan (`aimco.atlan.com`) |
+| Data catalog and lineage | Atlan (`meridian.atlan.com`) |
 | Data quality checks | Soda Cloud + `checks/` folder in dbt repo |
 | Reports and dashboards | Power BI Service (`app.powerbi.com`) |
-| Data warehouse (SQL) | Snowflake (`aimco.snowflakecomputing.com`) |
+| Data warehouse (SQL) | Snowflake (`meridian.snowflakecomputing.com`) |
 | Compute (PySpark, notebooks) | Databricks workspace |
 | Team communication | Microsoft Teams |
 | HR, access requests | MyAccess portal + HR Connect |

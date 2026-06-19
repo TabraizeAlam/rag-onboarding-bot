@@ -1,4 +1,4 @@
-"""
+﻿"""
 15-question evaluation with LLM-judged faithfulness scoring.
 
 For each answered question, a second LLM call (the "judge") checks whether
@@ -20,7 +20,7 @@ EVAL_QUESTIONS = [
     # Platform and architecture
     {"q": "What are the Bronze, Silver, and Gold layers in the data platform?", "category": "Architecture"},
     {"q": "What is the medallion architecture?", "category": "Architecture"},
-    {"q": "Which cloud does AIMCo's data platform run on?", "category": "Architecture"},
+    {"q": "Which cloud does Meridian's data platform run on?", "category": "Architecture"},
     # Pipeline workflow
     {"q": "What is the branching strategy and how do I name my feature branch?", "category": "Pipeline"},
     {"q": "What needs to happen before a new pipeline can go to production?", "category": "Pipeline"},
@@ -30,7 +30,7 @@ EVAL_QUESTIONS = [
     {"q": "How do I write a Soda data quality check?", "category": "Governance"},
     {"q": "What should I do in my first week as a new team member?", "category": "Onboarding"},
     # Out-of-scope — should trigger refusal
-    {"q": "What is AIMCo's current portfolio return this quarter?", "category": "Out-of-scope"},
+    {"q": "What is Meridian's current portfolio return this quarter?", "category": "Out-of-scope"},
     {"q": "What is the weather forecast for Edmonton tomorrow?", "category": "Out-of-scope"},
 ]
 

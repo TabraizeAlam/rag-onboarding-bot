@@ -1,12 +1,12 @@
-# Data Governance Framework
+﻿# Data Governance Framework
 
-Data governance at AIMCo's Data Platform team ensures that data assets are trustworthy, discoverable, properly classified, and used responsibly. This page explains the key policies and tools every data developer must follow.
+Data governance at Meridian's Data Platform team ensures that data assets are trustworthy, discoverable, properly classified, and used responsibly. This page explains the key policies and tools every data developer must follow.
 
 ---
 
-## Why Data Governance Matters at AIMCo
+## Why Data Governance Matters at Meridian
 
-AIMCo manages approximately $160 billion in assets on behalf of public-sector beneficiaries — teachers, nurses, government employees, and other Albertans whose retirement savings depend on the accuracy of investment data. Errors in data can lead to incorrect performance reporting, misaligned investment decisions, and regulatory exposure. Governance is not bureaucracy — it is how we maintain trust with our clients and regulators.
+Meridian manages approximately $160 billion in assets on behalf of public-sector beneficiaries — teachers, nurses, government employees, and other Albertans whose retirement savings depend on the accuracy of investment data. Errors in data can lead to incorrect performance reporting, misaligned investment decisions, and regulatory exposure. Governance is not bureaucracy — it is how we maintain trust with our clients and regulators.
 
 ---
 
@@ -94,7 +94,7 @@ checks for fct_portfolio_returns:
 
 ## 3. Data Classification
 
-AIMCo handles data that varies significantly in sensitivity. Every data asset in the catalog must have one of the following classification labels:
+Meridian handles data that varies significantly in sensitivity. Every data asset in the catalog must have one of the following classification labels:
 
 | Label | Definition | Examples |
 |-------|-----------|---------|
@@ -115,7 +115,7 @@ Data developers are responsible for classifying new models correctly. When uncer
 
 ## Data Lineage
 
-Lineage tracks the path data takes from source through transformations to consumption. At AIMCo:
+Lineage tracks the path data takes from source through transformations to consumption. At Meridian:
 
 - **Intra-platform lineage**: auto-tracked by dbt's `{{ ref() }}` and `{{ source() }}` macros, visible in both dbt docs and Atlan.
 - **Cross-system lineage**: if a Gold-layer table is consumed by an external system (e.g. a risk system, a reporting API), log it in the Atlan "consumers" section of that model.
@@ -137,7 +137,7 @@ Retention is managed via Snowflake's Time Travel and Fail-safe, plus a scheduled
 
 ## Requesting New Data Access
 
-All data access is provisioned through the **MyAccess portal** (myaccess.aimco.ca):
+All data access is provisioned through the **MyAccess portal** (myaccess.meridian.ca):
 
 1. Log in with your Azure AD credentials.
 2. Search for the Snowflake role or Atlan workspace you need.

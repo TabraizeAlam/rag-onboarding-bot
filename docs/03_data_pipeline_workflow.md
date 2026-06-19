@@ -1,6 +1,6 @@
-# Data Pipeline Workflow — Build, Test, Deploy
+﻿# Data Pipeline Workflow — Build, Test, Deploy
 
-This document describes how a data pipeline goes from an idea to production on the AIMCo Data Platform.
+This document describes how a data pipeline goes from an idea to production on the Meridian Data Platform.
 
 ## Overview: Medallion Architecture
 
@@ -28,7 +28,7 @@ External Sources
 
 ## Data Sources
 
-Common source categories (all listed publicly in AIMCo's investor communications):
+Common source categories (all listed publicly in Meridian's investor communications):
 
 | Source Type | Examples |
 |------------|---------|
@@ -62,7 +62,7 @@ If the source does not already land in `RAW_DB`, create an ingestion job:
 from pyspark.sql import SparkSession
 
 spark = SparkSession.builder.getOrCreate()
-df = spark.read.csv("abfss://raw@aimcostorage.dfs.core.windows.net/bloomberg/prices/", header=True)
+df = spark.read.csv("abfss://raw@meridianstorage.dfs.core.windows.net/bloomberg/prices/", header=True)
 df.write.format("snowflake") \
     .options(**snowflake_options) \
     .option("dbtable", "RAW_DB.BLOOMBERG.PRICES_RAW") \

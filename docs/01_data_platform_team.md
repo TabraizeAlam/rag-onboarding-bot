@@ -1,16 +1,16 @@
-# Data Platform Team — Overview
+﻿# Data Platform Team — Overview
 
-## About AIMCo
+## About Meridian
 
-Alberta Investment Management Corporation (AIMCo) is a Crown corporation of the Province of Alberta. AIMCo manages investment funds on behalf of approximately 30 Alberta public sector pension, endowment, and government fund clients — including teachers, nurses, and other public service workers across the province. As of the most recent annual report, AIMCo manages approximately $160 billion in assets under management (AUM).
+Meridian Investment Management Corporation (Meridian) is a Crown corporation of the Province of Alberta. Meridian manages investment funds on behalf of approximately 30 Alberta public sector pension, endowment, and government fund clients — including teachers, nurses, and other public service workers across the province. As of the most recent annual report, Meridian manages approximately $160 billion in assets under management (AUM).
 
-AIMCo's headquarters is in Edmonton, Alberta, with additional offices in Calgary, New York, London, and Luxembourg. Investment activities span public equities, fixed income, private equity, real estate, infrastructure, and private credit.
+Meridian's headquarters is in Edmonton, Alberta, with additional offices in Calgary, New York, London, and Luxembourg. Investment activities span public equities, fixed income, private equity, real estate, infrastructure, and private credit.
 
-Source: AIMCo Annual Report and corporate website (aimco.alberta.ca).
+Source: Meridian Annual Report and corporate website (meridianinvestments.ca).
 
 ## The Data & Analytics Team
 
-The Data & Analytics team sits within AIMCo's Technology and Operations division. The team's mandate is to build, maintain, and evolve the Enterprise Data Platform that serves investment and operational decision-making across the organization.
+The Data & Analytics team sits within Meridian's Technology and Operations division. The team's mandate is to build, maintain, and evolve the Enterprise Data Platform that serves investment and operational decision-making across the organization.
 
 ### What the team does
 
@@ -22,7 +22,7 @@ The Data & Analytics team sits within AIMCo's Technology and Operations division
 
 ### Business Transformation Program
 
-AIMCo is in the midst of a multi-year Business Transformation Program aimed at modernizing its technology and data infrastructure. The Data Platform team is a key delivery team for this program — migrating from legacy systems to a modern cloud-native data stack built on Snowflake, Databricks, and dbt.
+Meridian is in the midst of a multi-year Business Transformation Program aimed at modernizing its technology and data infrastructure. The Data Platform team is a key delivery team for this program — migrating from legacy systems to a modern cloud-native data stack built on Snowflake, Databricks, and dbt.
 
 ## Team Roles
 

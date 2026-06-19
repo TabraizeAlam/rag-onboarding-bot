@@ -1,4 +1,4 @@
-"""
+﻿"""
 LangGraph-based RAG pipeline — Nebius-only (embeddings + generation).
 
 Graph nodes:
@@ -231,8 +231,8 @@ def generate(state: RAGState) -> dict:
     context = "\n\n---\n\n".join(context_parts)
 
     system = (
-        "You are an onboarding assistant for new Data Platform team members at AIMCo "
-        "(Alberta Investment Management Corporation). "
+        "You are an onboarding assistant for new Data Platform team members at Meridian "
+        "(Meridian Investment Management Corporation). "
         "Answer questions using ONLY the provided knowledge base excerpts. "
         "Cite the source file name in your answer (e.g. 'According to 02_environment_setup.md...'). "
         "If the excerpts do not contain enough information, say so clearly rather than guessing."

@@ -1,15 +1,15 @@
-# Developer Environment Setup
+﻿# Developer Environment Setup
 
 This guide walks a new Data Platform team member through setting up their local development environment and getting access to the core tools.
 
 ## Prerequisites
 
 Before your first day, IT should have provisioned:
-- Azure AD account (your @aimco.ca login)
+- Azure AD account (your @meridian.ca login)
 - Laptop with Windows 11 and admin rights for software installation
 - VPN client (GlobalProtect) — required for connecting to on-premise systems
 
-If any of these are missing, contact the IT Service Desk (servicedesk@aimco.ca or Teams: IT Help).
+If any of these are missing, contact the IT Service Desk (servicedesk@meridian.ca or Teams: IT Help).
 
 ---
 
@@ -37,11 +37,11 @@ dbt Core            → pip install dbt-snowflake
 
 ## Step 2: Snowflake Access
 
-Snowflake is AIMCo's cloud data warehouse — the single source of truth for all curated data.
+Snowflake is Meridian's cloud data warehouse — the single source of truth for all curated data.
 
-**Account URL:** `aimco.snowflakecomputing.com` (internal; requires VPN)
+**Account URL:** `meridian.snowflakecomputing.com` (internal; requires VPN)
 
-**Authentication:** Single Sign-On via Azure AD. Use the "Sign in with SSO" option and enter your @aimco.ca email.
+**Authentication:** Single Sign-On via Azure AD. Use the "Sign in with SSO" option and enter your @meridian.ca email.
 
 **Your default role:** `DATA_DEVELOPER_ROLE` — gives read access to all Bronze/Silver schemas and read/write to the `DEV_` schemas for development work.
 
@@ -89,7 +89,7 @@ dbt is used for all SQL transformations in the Silver and Gold layers.
 ### Clone the data platform repository
 
 ```bash
-git clone https://aimco-devops@dev.azure.com/aimco/DataPlatform/_git/dbt-platform
+git clone https://meridian-devops@dev.azure.com/meridian/DataPlatform/_git/dbt-platform
 cd dbt-platform
 ```
 
@@ -103,8 +103,8 @@ data_platform:
   outputs:
     dev:
       type: snowflake
-      account: aimco
-      user: <your-email>@aimco.ca
+      account: Meridian
+      user: <your-email>@meridian.ca
       authenticator: externalbrowser   # uses Azure AD SSO
       role: DATA_DEVELOPER_ROLE
       warehouse: DEV_WH
@@ -127,7 +127,7 @@ dbt run --select staging.*   # runs only staging models
 
 Atlan is the team's metadata and data governance platform.
 
-**URL:** `aimco.atlan.com` (SSO login)
+**URL:** `meridian.atlan.com` (SSO login)
 
 All data developers are expected to:
 - Browse Atlan before starting new work to check if data assets already exist
@@ -140,7 +140,7 @@ All data developers are expected to:
 
 Soda is used for automated data quality checks that run after each pipeline execution.
 
-**URL:** `cloud.soda.io` — log in with your work email and ask your team lead to add you to the `AIMCo Data Platform` organization.
+**URL:** `cloud.soda.io` — log in with your work email and ask your team lead to add you to the `Meridian Data Platform` organization.
 
 Your responsibility: write Soda checks (`.yml` files in the `checks/` directory of the dbt repo) for any new Silver or Gold models you create.
 
@@ -150,7 +150,7 @@ Your responsibility: write Soda checks (`.yml` files in the `checks/` directory 
 
 All code lives in Azure DevOps Repos. CI/CD pipelines are also defined there.
 
-**URL:** `dev.azure.com/aimco`
+**URL:** `dev.azure.com/meridian`
 
 Projects you need access to:
 - `DataPlatform` — the main dbt and pipeline code

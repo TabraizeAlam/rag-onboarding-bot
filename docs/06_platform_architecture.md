@@ -1,6 +1,6 @@
-# Data Platform Architecture
+﻿# Data Platform Architecture
 
-This document describes the end-to-end architecture of AIMCo's Enterprise Data Platform. It is intended to help new team members understand how the pieces fit together before diving into individual components.
+This document describes the end-to-end architecture of Meridian's Enterprise Data Platform. It is intended to help new team members understand how the pieces fit together before diving into individual components.
 
 ---
 
@@ -59,7 +59,7 @@ External Data Sources
 
 ## Cloud Infrastructure
 
-AIMCo's data platform is hosted on **Microsoft Azure**:
+Meridian's data platform is hosted on **Microsoft Azure**:
 
 | Component | Azure Service |
 |-----------|--------------|
@@ -71,7 +71,7 @@ AIMCo's data platform is hosted on **Microsoft Azure**:
 | Identity & access | Azure Active Directory (AAD) |
 | Monitoring | Azure Monitor + custom Databricks logs |
 
-All data stays within Canada (ADLS and Snowflake in Canada Central) to satisfy the data residency requirements of AIMCo's Canadian public-sector mandate.
+All data stays within Canada (ADLS and Snowflake in Canada Central) to satisfy the data residency requirements of Meridian's Canadian public-sector mandate.
 
 ---
 
