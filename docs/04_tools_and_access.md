@@ -1,85 +1,156 @@
-# Tools and Access
+# Tools and Access Guide
 
-## Access Request Process
+This page describes every tool the Data Platform team uses, what it's for, and how to get access.
 
-All tool access is requested via the IT portal at `it.internal.acme.com`. Your manager must approve each request. Standard tools are auto-provisioned on day 1; specialized tools require justification.
+---
 
-Expected provisioning time: 1–2 business days for standard tools, up to 5 days for elevated access.
+## Snowflake — Cloud Data Warehouse
 
-## Core Tools
+**What it is:** Snowflake is AIMCo's central data warehouse. All Bronze, Silver, and Gold layer data lives here. It is the authoritative source for investment analytics, reporting, and downstream data products.
 
-### Communication
-| Tool | Purpose | Access |
-|------|---------|--------|
-| Slack | Team chat, async communication | Auto-provisioned on day 1 |
-| Zoom | Video meetings | Auto-provisioned on day 1 |
-| Google Workspace | Email, Docs, Calendar | Auto-provisioned on day 1 |
+**How to access:**
+- URL: `aimco.snowflakecomputing.com` (requires VPN or corporate network)
+- Login: Azure AD SSO with your @aimco.ca account
+- Default role: `DATA_DEVELOPER_ROLE` (provisioned on Day 1)
 
-Key Slack channels to join immediately:
-- `#general` — company-wide announcements
-- `#eng-announcements` — engineering-wide announcements
-- `#team-general` — Platform Engineering team channel
-- `#infra-team`, `#devex-team`, or `#data-platform` — your squad channel
-- `#prod-alerts` — production alert notifications
-- `#incidents` — active incident coordination
-- `#help-desk` — IT support requests
+**Key features used at AIMCo:**
+- **Time Travel**: query data as it was at any point in the last 90 days — critical for debugging pipeline issues and reprocessing
+- **Data Sharing**: securely share curated Gold-layer datasets with external parties (auditors, consultants) without copying data
+- **Tasks & Streams**: used for change-data-capture (CDC) patterns on source tables
+- **Snowpipe**: continuous ingestion for real-time market data feeds
 
-### Development
-| Tool | Purpose | Access |
-|------|---------|--------|
-| GitHub (acme-corp org) | Source code, PRs, CI/CD | Request via IT portal → "GitHub Org Access" |
-| AWS Console | Cloud infrastructure | Request via IT portal → "AWS SSO" |
-| Docker Desktop | Local containerization | Download from IT software portal |
-| Datadog | Monitoring and APM | Request via IT portal → "Datadog Read" (default) or "Datadog Admin" |
-| Terraform Cloud | Infrastructure state | Request via IT portal → "Terraform Cloud" |
-| ArgoCD | GitOps CD dashboard | `argocd.internal.acme.com` — SSO login |
+**Who to contact:** #data-platform-team on Teams, or raise an IT ticket for role/access issues.
 
-### Project Management
-| Tool | Purpose | Access |
-|------|---------|--------|
-| Jira | Sprint tracking, tickets | Auto-provisioned on day 1 |
-| Confluence | Internal documentation | Auto-provisioned on day 1 |
-| Notion | Team notes, lightweight docs | Request via IT portal |
-| Figma | Design files | Request via IT portal (engineers: Viewer role) |
+---
 
-### Data and Analytics
-| Tool | Purpose | Access |
-|------|---------|--------|
-| Snowflake | Analytics data warehouse | Request via IT portal → "Snowflake Read" |
-| dbt Cloud | Data transformations | Request via IT portal → "dbt Cloud" |
-| Looker | Business intelligence dashboards | Request via IT portal → "Looker Viewer" |
-| Airflow | Data pipeline orchestration | `airflow.internal.acme.com` — request via IT portal |
+## Databricks — Distributed Compute Platform
 
-## Elevated Access
+**What it is:** Databricks is used for workloads that require distributed processing (PySpark), ML model training, or complex Python logic that doesn't fit in pure SQL. Hosted on Azure.
 
-The following require additional justification and manager + security approval:
+**How to access:**
+- Workspace URL provided by your team lead on Day 1
+- Login: Azure AD SSO
+- Do not create personal clusters — use `DATA_TEAM_SHARED` for dev work
 
-- **Production database access** — for break-glass incidents only. Documented in the incident ticket. Access is time-limited (4 hours max).
-- **Terraform Admin** — only for Infra Squad leads.
-- **AWS root/admin** — not available. Use least-privilege IAM roles.
-- **Datadog Admin** — for on-call engineers and squad leads.
+**Key uses at AIMCo:**
+- **File-based ingestion**: loading vendor CSV/XML/JSON files from Azure Blob Storage into Snowflake Bronze
+- **Complex transformations**: risk calculations, return attribution, and large joins that benefit from Spark's parallelism
+- **Orchestration**: Databricks Workflows schedules and sequences the entire daily pipeline run
+- **ML & experimentation**: notebooks for data science exploratory work and model prototyping
 
-## On-call Rotation
+**Important:** All production code must live in Azure DevOps — never in Databricks notebooks unless the notebook is version-controlled via the Databricks-DevOps integration.
 
-The team runs a weekly on-call rotation covering production incidents:
-- Schedule is managed in PagerDuty (`acme.pagerduty.com`)
-- You will be added to the rotation after your first 60 days
-- On-call runbooks are in Confluence under "Platform Engineering > On-Call Runbooks"
-- Escalation path: On-call engineer → Squad Lead → Engineering Manager → VP of Engineering
+---
 
-## Secrets and Credentials
+## dbt (data build tool) — Transformation Layer
 
-- **Never store secrets in code or environment files committed to git.** Pre-commit hooks will catch this.
-- All application secrets live in AWS Secrets Manager under `/acme/<environment>/<service>/<secret-name>`.
-- Local development uses `.env` files (not committed). Copy from `.env.example` in each repo.
-- Personal credentials (tokens, keys) should be stored in 1Password (team license — request via IT portal).
-- API keys for third-party services are managed by the Infra Squad. Request via #infra-team.
+**What it is:** dbt is the primary tool for building SQL-based data transformations in the Silver and Gold layers. It brings software engineering practices (version control, testing, documentation) to SQL.
 
-## VPN
+**How to access:** dbt Core is installed locally (`pip install dbt-snowflake`). dbt Cloud is not used — all runs happen locally (dev) or via Azure Pipelines (CI/CD).
 
-Production internal services require VPN. We use Tailscale:
-1. Download Tailscale from `it.internal.acme.com/software`
-2. Sign in with your Acme Google account
-3. You will be auto-enrolled in the `acme-engineers` network once approved by IT
+**Key concepts:**
+- **Models**: `.sql` files in `models/` that define a SELECT statement. dbt handles the CREATE/INSERT.
+- **Sources**: raw tables in the Bronze layer, declared in `sources.yml`
+- **Tests**: built-in (`not_null`, `unique`, `accepted_values`) and custom tests in the `tests/` directory
+- **Docs**: `dbt docs generate && dbt docs serve` creates a browsable data dictionary from your models and `.yml` descriptions
+- **Lineage**: dbt automatically tracks which models depend on which — visible in the DAG view in dbt docs
 
-VPN is required to access: ArgoCD, Airflow, internal Confluence spaces, and staging environments.
+**Common commands:**
+```bash
+dbt run                          # run all models
+dbt run --select staging.*       # run only staging models
+dbt run --select +fct_portfolio_returns  # run model and all upstream dependencies
+dbt test                         # run all tests
+dbt docs generate && dbt docs serve    # browse the data catalog locally
+```
+
+---
+
+## Atlan — Data Catalog & Governance
+
+**What it is:** Atlan is the team's metadata platform. It provides a searchable catalog of all data assets, tracks lineage (where did this data come from?), manages ownership, and enforces classification policies.
+
+**How to access:** `aimco.atlan.com` — SSO login. Request to be added to the `Data Platform` workspace from the #data-governance channel.
+
+**What you must do in Atlan:**
+1. **Before building**: search Atlan to check if the data you need already exists as a certified Gold asset.
+2. **After building**: ensure your new dbt models appear in Atlan (synced automatically via `dbt docs generate` in CI). Add a business description, assign an owner, and set the data domain.
+3. **Classify sensitive data**: any model containing PII, financial personal data, or confidential investment positions must be tagged with the appropriate classification label. See the Data Classification Policy (linked in Atlan's home page).
+
+**Lineage in Atlan:** Atlan auto-discovers lineage from dbt manifests and Databricks job logs. If lineage looks broken, run `dbt docs generate` in the CI pipeline and the sync job will update it within the hour.
+
+---
+
+## Soda — Data Quality Platform
+
+**What it is:** Soda provides automated data quality monitoring. Every Gold-layer model has a set of Soda checks that run after each pipeline execution. Results are visible in Soda Cloud and failures alert the on-call engineer.
+
+**How to access:** `cloud.soda.io` — ask your team lead to add you to the `AIMCo Data Platform` organization.
+
+**Writing checks:**
+Checks live in the `checks/` directory of the `dbt-platform` repo, mirroring the `models/` directory structure. File naming: `<model_name>.yml`.
+
+```yaml
+checks for fct_portfolio_returns:
+  - missing_count(return_date) = 0:
+      name: Return date must always be populated
+  - duplicate_count(portfolio_id, return_date) = 0:
+      name: No duplicate portfolio-date combinations
+  - freshness(loaded_at) < 1d:
+      name: Data must be refreshed within last 24 hours
+```
+
+**SLA:** Gold-layer Soda checks must pass by 7:00 AM MT daily so that investment teams can trust the data when they start their day.
+
+---
+
+## Power BI — Business Intelligence & Reporting
+
+**What it is:** Power BI is the standard reporting and dashboard tool for investment and operations teams. Data developers build and maintain the semantic models (datasets) that Power BI reports connect to.
+
+**How to access:**
+- Power BI Desktop: install from Microsoft Store
+- Power BI Service: `app.powerbi.com` — request a Pro license via IT Service Desk
+
+**Data connection:**
+Power BI connects to Snowflake Gold-layer tables directly using DirectQuery or Import mode, depending on the report's refresh requirements. Use the `REPORTING_ROLE` in Snowflake for all Power BI connections — it has read-only access to `ANALYTICS_DB.*`.
+
+**Semantic model ownership:** The Data Platform team owns and publishes semantic models (datasets) to the `Data Platform` workspace in Power BI Service. Business teams build their own reports on top of these shared datasets. Do not allow business teams to connect directly to Silver or Bronze layers.
+
+---
+
+## Azure DevOps — Source Control & CI/CD
+
+**What it is:** All code (dbt models, Databricks notebooks, Python ingestion scripts, Soda checks) lives in Azure DevOps Repos. CI/CD pipelines are also defined here as YAML pipeline files.
+
+**URL:** `dev.azure.com/aimco`
+
+**Branching strategy:**
+- `main` — production-ready code; direct commits not allowed
+- `dev` — integration branch; PRs from feature branches merge here first in some team workflows
+- `feature/<ticket-id>-<short-description>` — your working branch
+
+**CI pipeline (runs on every PR):**
+1. `dbt compile` — catches SQL syntax errors and missing refs
+2. `dbt test --select state:modified+` — runs tests on changed models and their dependents
+3. Soda scan on affected models using a dev Snowflake warehouse
+4. SQLFluff lint check
+
+**CD pipeline (runs on merge to main):**
+1. `dbt run --select state:modified+` on production Snowflake
+2. Full `dbt test` run
+3. Soda production scan
+4. Databricks workflow redeploy if any notebook changed
+5. Power BI dataset refresh triggered via REST API
+
+---
+
+## Teams Channels (Microsoft Teams)
+
+| Channel | Purpose |
+|---------|---------|
+| `#data-platform-team` | General team discussion, daily standups |
+| `#data-platform-alerts` | Automated pipeline failure alerts (do not post here manually) |
+| `#data-governance` | Atlan questions, classification policies, data ownership |
+| `#data-platform-help` | Questions from business users about data and reports |
+| `#business-transformation` | Cross-team updates on the BTP program |

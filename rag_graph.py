@@ -231,9 +231,10 @@ def generate(state: RAGState) -> dict:
     context = "\n\n---\n\n".join(context_parts)
 
     system = (
-        "You are an onboarding assistant for new team members at Acme Corp. "
+        "You are an onboarding assistant for new Data Platform team members at AIMCo "
+        "(Alberta Investment Management Corporation). "
         "Answer questions using ONLY the provided knowledge base excerpts. "
-        "Cite the source file name in your answer (e.g. 'According to 02_dev_environment_setup.md...'). "
+        "Cite the source file name in your answer (e.g. 'According to 02_environment_setup.md...'). "
         "If the excerpts do not contain enough information, say so clearly rather than guessing."
     )
 
@@ -250,9 +251,9 @@ def generate(state: RAGState) -> dict:
 def refuse(state: RAGState) -> dict:
     return {
         "answer": (
-            "I couldn't find relevant information in the team knowledge base to answer your question. "
-            "Please check the Confluence wiki, ask in the appropriate Slack channel (#devex-team, "
-            "#infra-team, #data-platform), or reach out to your onboarding buddy."
+            "I couldn't find relevant information in the Data Platform knowledge base to answer your question. "
+            "Please check with your onboarding buddy, post in the #data-platform-team Teams channel, "
+            "or search the Atlan data catalog for data-related questions."
         ),
         "sources": [],
     }

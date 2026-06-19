@@ -1,8 +1,12 @@
-# Acme Corp Onboarding RAG Bot
+# AIMCo Data Platform Onboarding RAG Bot
 
-**One-liner:** This RAG app helps new hires answer onboarding and setup questions from the team's Confluence-style knowledge base via a Streamlit chatbot with ≥90% faithfulness.
+**One-liner:** This RAG app helps new Data Platform team members at AIMCo answer onboarding questions — from environment setup to data governance — via a Streamlit chatbot with ≥90% faithfulness.
 
 Built for The Gen Academy — Week 2 Project (Track 2: LangChain + LangGraph).
+
+> **Corpus note:** All knowledge base documents are grounded in publicly available AIMCo information
+> (annual reports, corporate website, public job postings). No internal, confidential, or proprietary
+> data is used.
 
 ## Architecture
 
@@ -22,7 +26,7 @@ User question  →  LangGraph pipeline:
 | Layer | Choice | Why |
 |-------|--------|-----|
 | Chunking | Recursive, 1,500 chars (~375 tokens), 200 overlap | Keeps a full markdown section per chunk |
-| Embedding | Nebius `BAAI/bge-en-icl` | Single API key for whole project; strong English embeddings |
+| Embedding | Nebius `Qwen/Qwen3-Embedding-8B` | Single API key for whole project; strong English embeddings |
 | Retrieval | Hybrid BM25 + dense (60/40), top-8 | Dense catches semantic intent; BM25 catches exact tool names / acronyms |
 | Reranking | FlashRank `ms-marco-MiniLM-L-12-v2` (local) | Cross-encoder reads question+chunk together; free, no GPU |
 | Generation | Nebius Llama-3.3-70B-Instruct | Required by course; fast inference |
@@ -58,7 +62,7 @@ Get Nebius key at: https://studio.nebius.ai/ → API Keys
 ```bash
 python ingest.py
 ```
-This loads the 7 markdown docs from `docs/`, chunks them, embeds them via Nebius (`BAAI/bge-en-icl`), and stores them in a local Chroma DB (`chroma_db/`). Takes ~30 seconds.
+This loads the 7 markdown docs from `docs/`, chunks them, embeds them via Nebius (`Qwen/Qwen3-Embedding-8B`), and stores them in a local Chroma DB (`chroma_db/`). Takes ~30 seconds.
 
 ### 4. Run the chatbot
 ```bash
@@ -83,13 +87,13 @@ To use your own Confluence/team docs:
 
 ```
 rag-onboarding-bot/
-├── docs/                    # Knowledge base (7 markdown files)
-│   ├── 01_team_overview.md
-│   ├── 02_dev_environment_setup.md
-│   ├── 03_deployment_process.md
+├── docs/                    # Knowledge base (7 markdown files — AIMCo Data Platform)
+│   ├── 01_data_platform_team.md
+│   ├── 02_environment_setup.md
+│   ├── 03_data_pipeline_workflow.md
 │   ├── 04_tools_and_access.md
-│   ├── 05_engineering_processes.md
-│   ├── 06_architecture_overview.md
+│   ├── 05_data_governance.md
+│   ├── 06_platform_architecture.md
 │   └── 07_onboarding_checklist.md
 ├── chroma_db/               # Created by ingest.py (gitignored)
 ├── ingest.py                # Load → clean → chunk → embed → store

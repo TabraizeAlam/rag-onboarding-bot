@@ -12,24 +12,26 @@ import json
 from rag_graph import ask, get_llm
 
 EVAL_QUESTIONS = [
-    # Happy path — should retrieve well
-    {"q": "How do I set up my local development environment?", "category": "Setup"},
-    {"q": "What tools do I need to install before cloning a repo?", "category": "Setup"},
-    {"q": "How do I configure AWS SSO?", "category": "Setup"},
-    {"q": "What is the deployment process to production?", "category": "Deployment"},
-    {"q": "How do I roll back a production deployment?", "category": "Deployment"},
-    {"q": "What are the PR review requirements?", "category": "Process"},
-    {"q": "What is the branching strategy the team uses?", "category": "Process"},
-    {"q": "What is the incident severity classification?", "category": "Process"},
-    {"q": "Who is the Engineering Manager?", "category": "Team"},
-    {"q": "What Slack channels should I join as a new hire?", "category": "Onboarding"},
-    # Edge cases — ambiguous or cross-document
-    {"q": "What should I do in my first week?", "category": "Onboarding"},
-    {"q": "How do I request access to Snowflake?", "category": "Tools"},
-    {"q": "What databases does Acme use and where are they hosted?", "category": "Architecture"},
+    # Setup and access
+    {"q": "How do I set up my local dbt environment to connect to Snowflake?", "category": "Setup"},
+    {"q": "What tools do I need to install as a new data developer?", "category": "Setup"},
+    {"q": "How do I get access to Databricks?", "category": "Setup"},
+    {"q": "Where do I request Snowflake access for the CONFIDENTIAL data role?", "category": "Setup"},
+    # Platform and architecture
+    {"q": "What are the Bronze, Silver, and Gold layers in the data platform?", "category": "Architecture"},
+    {"q": "What is the medallion architecture?", "category": "Architecture"},
+    {"q": "Which cloud does AIMCo's data platform run on?", "category": "Architecture"},
+    # Pipeline workflow
+    {"q": "What is the branching strategy and how do I name my feature branch?", "category": "Pipeline"},
+    {"q": "What needs to happen before a new pipeline can go to production?", "category": "Pipeline"},
+    {"q": "How do dbt models get deployed to production?", "category": "Pipeline"},
+    # Governance and tools
+    {"q": "What is Atlan used for and what do I need to do there?", "category": "Governance"},
+    {"q": "How do I write a Soda data quality check?", "category": "Governance"},
+    {"q": "What should I do in my first week as a new team member?", "category": "Onboarding"},
     # Out-of-scope — should trigger refusal
-    {"q": "What is the company stock price?", "category": "Out-of-scope"},
-    {"q": "Can you write me a Python function to sort a list?", "category": "Out-of-scope"},
+    {"q": "What is AIMCo's current portfolio return this quarter?", "category": "Out-of-scope"},
+    {"q": "What is the weather forecast for Edmonton tomorrow?", "category": "Out-of-scope"},
 ]
 
 JUDGE_PROMPT = """You are evaluating a RAG system for faithfulness.

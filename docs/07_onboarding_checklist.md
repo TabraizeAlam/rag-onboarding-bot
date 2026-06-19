@@ -1,93 +1,152 @@
-# New Hire Onboarding Checklist
+# New Hire Onboarding Checklist — Data Platform Team
 
-## Week 1: Get Set Up
+Welcome to the AIMCo Data Platform team! This checklist guides you through your first four weeks. Work through it in order — each week builds on the last.
 
-### Day 1
-- [ ] Receive laptop from IT and complete initial setup (FileVault/BitLocker encryption required)
-- [ ] Set up Google Workspace account (email, Calendar, Meet)
-- [ ] Join Slack and set up profile with full name, role, and photo
-- [ ] Join all required Slack channels (see `04_tools_and_access.md`)
-- [ ] Attend New Hire Orientation with HR (9 AM, Conference Room A / Zoom)
-- [ ] Meet with your Engineering Manager (David Park or squad lead) for a 1:1 welcome call
-- [ ] Get GitHub org access — request via IT portal, expected by EOD
+---
 
-### Day 2–3
-- [ ] Complete developer environment setup (see `02_dev_environment_setup.md`)
-- [ ] Clone and successfully run your squad's primary repository locally
-- [ ] Configure AWS SSO with profile `acme-dev`
-- [ ] Request access to required tools via IT portal (Jira, Datadog, Terraform Cloud)
-- [ ] Set up 1Password and store any personal credentials there
-- [ ] Install and configure Tailscale VPN
-- [ ] Shadow your squad lead or a buddy engineer for half a day
+## Before Day 1 (done by your manager or IT)
 
-### Day 4–5
-- [ ] Read the Architecture Overview (`06_architecture_overview.md`)
-- [ ] Read the Engineering Processes doc (`05_engineering_processes.md`)
-- [ ] Attend your first team standup
-- [ ] Open and merge your first "Hello World" PR (update the team roster in Confluence or fix a doc typo)
-- [ ] Set up your Jira account and view the current sprint board
-- [ ] Meet with your assigned onboarding buddy for lunch/coffee
+- [ ] Azure AD account (@aimco.ca) created
+- [ ] Laptop provisioned with Windows 11
+- [ ] VPN (GlobalProtect) configured
+- [ ] Snowflake `DATA_DEVELOPER_ROLE` provisioned
+- [ ] Azure DevOps Repos access granted to `DataPlatform` project
+- [ ] Microsoft Teams set up and added to relevant channels
+- [ ] Meeting invitation sent for onboarding buddy introduction
+- [ ] Week 1 calendar blocked with onboarding sessions
 
-## Week 2: Start Contributing
+---
 
-- [ ] Be assigned your first real ticket (XS or S size) in Jira
-- [ ] Attend sprint planning if it falls in Week 2
-- [ ] Complete the Security Awareness Training (link in your email from IT)
-- [ ] Complete the Data Privacy training (mandatory, required within 14 days of start)
-- [ ] Set up recurring 1:1 with your Engineering Manager (weekly for first 90 days)
-- [ ] Read on-call runbooks for your squad (Confluence > Platform Engineering > On-Call Runbooks)
-- [ ] Shadow an on-call rotation week (observe, do not respond solo yet)
+## Week 1 — Orientation and Access
 
-## Week 3–4: Build Confidence
+### Day 1 (Monday)
+- [ ] Complete HR paperwork and laptop security setup (bitlocker, MDE, Intune enrollment)
+- [ ] Activate @aimco.ca account and set up MFA
+- [ ] Join Teams channels: `#data-platform-team`, `#data-governance`, `#data-platform-help`, `#business-transformation`
+- [ ] Meet your **onboarding buddy** (assigned by your manager) — first 1:1 on Day 1
+- [ ] Get your onboarding buddy's contact and calendar
 
-- [ ] Submit your second PR independently (no hand-holding)
-- [ ] Conduct your first code review for a teammate
-- [ ] Attend an Architecture Review meeting and ask at least one question
-- [ ] Review and understand the deployment process (`03_deployment_process.md`)
-- [ ] Run a staging deployment for any service (with your buddy observing)
-- [ ] Complete HR-required compliance training modules (in Workday)
+### Day 1-2: Environment Setup
+- [ ] Install core tools: Python 3.11, Git, VS Code, dbt, Databricks CLI (see [02_environment_setup.md])
+- [ ] Connect to Snowflake via SSO — verify you can query `RAW_DB`
+- [ ] Log in to Databricks workspace
+- [ ] Log in to Atlan and explore the catalog
+- [ ] Log in to Soda Cloud
+- [ ] Access Azure DevOps and clone the `dbt-platform` repository
 
-## 30-Day Check-In (with your Manager)
+### Day 2-3: Platform Orientation
+- [ ] Read [06_platform_architecture.md] — understand the full Medallion architecture
+- [ ] Read [03_data_pipeline_workflow.md] — understand how a pipeline goes from idea to production
+- [ ] Browse Atlan — explore 5–10 Gold-layer assets and read their descriptions
+- [ ] Run `dbt debug` locally to verify your local dbt setup
+- [ ] Run `dbt compile` — ensure all 300+ models compile without errors
 
-Your manager will schedule a 30-day check-in. Come prepared to discuss:
-- What's going well?
-- What's unclear or confusing?
-- What do you want to learn in the next 30 days?
-- Are there any blockers to your productivity?
+### Day 3-5: Codebase Orientation
+- [ ] Walk through the `dbt-platform` repo structure with your onboarding buddy
+- [ ] Identify 2–3 existing Gold-layer models in your domain and trace them back to Bronze in Atlan
+- [ ] Read 3 merged PRs in Azure DevOps to understand the team's code review style
+- [ ] Attend your first team standup and introduce yourself
 
-## 60-Day Milestones
+---
 
-By day 60 you should be able to:
-- [ ] Independently own and close tickets without asking for help at every step
-- [ ] Participate in PR reviews with substantive feedback
-- [ ] Know who to go to for questions on each part of the stack
-- [ ] Run a production deployment (with approval) from start to finish
-- [ ] Be added to the on-call rotation schedule
+## Week 2 — First Contribution
 
-## Key Contacts for New Hires
+### Goal: your first PR merged to `dev`
 
-| Who | Role | Slack | When to contact |
-|-----|------|-------|----------------|
-| Your onboarding buddy | Peer engineer | Assigned on Day 1 | First point of contact for "dumb questions" |
-| David Park | Engineering Manager | @david.park | Career, process, team concerns |
-| Sarah Chen | Team Lead | @sarah.chen | Technical architecture, escalations |
-| #help-desk | IT Support | Slack channel | Tool access, laptop issues |
-| #devex-team | Developer Experience | Slack channel | Dev environment issues |
-| #infra-team | Infrastructure | Slack channel | AWS, Kubernetes, cloud access |
+- [ ] Request any additional access needed (Databricks, Soda, Power BI Service) via MyAccess
+- [ ] Pick up a "good first issue" ticket from Azure DevOps Boards (ask your manager)
+- [ ] Implement the change on a feature branch using the naming convention `feature/<ticket-id>-<description>`
+- [ ] Write a dbt test for any new column you introduce
+- [ ] Run `dbt test --select <your_model>` locally before opening a PR
+- [ ] Open a PR, link it to the Azure DevOps ticket, and request review from your onboarding buddy
+- [ ] Address review comments and get the PR merged
+- [ ] Write a Soda check for your new model (if Silver or Gold layer) in `checks/`
 
-## FAQ for New Hires
+### Shadow sessions this week
+- [ ] Shadow a Senior Data Developer during a production pipeline run review
+- [ ] Sit in on one stakeholder data request meeting (ask your manager to include you)
 
-**Q: How do I request time off?**
-Use Workday (workday.acme.com). Submit at least 2 weeks ahead for 3+ days. Inform your manager and mark your Google Calendar as Out of Office.
+---
 
-**Q: Where do I find the on-call schedule?**
-PagerDuty at `acme.pagerduty.com`. You can also see it in #infra-team channel — the current on-call posts a message every Monday.
+## Week 3 — Domain Deepening
 
-**Q: What if I break something in production?**
-Stay calm. Post immediately in #incidents. Call your squad lead if it's P0/P1. Never try to fix production quietly on your own. Blameless culture — the system that allowed the mistake is the problem, not you.
+### Goal: understand the investment domain context
 
-**Q: How do I propose a technical change (new tool, architecture change)?**
-Write an RFC (Request for Comments) doc using the template in Confluence (Platform Engineering > RFC Template). Post in #team-general. Architecture Review discusses RFCs on Wednesdays.
+- [ ] Read AIMCo's most recent Annual Report (available at aimco.alberta.ca) — focus on:
+  - Investment framework and asset classes
+  - Performance reporting methodology
+  - Client fund descriptions
+- [ ] Schedule a 30-minute intro meeting with one investment analyst who consumes your team's data
+- [ ] Review the Power BI reports your team's Gold models power — understand what each report is answering for the business
+- [ ] Complete AIMCo's mandatory Information Security Awareness training (assigned in your Learning portal)
+- [ ] Complete the Data Classification Policy training (assigned by your manager)
 
-**Q: Who approves expenses?**
-Submit in Concur (concur.acme.com). Your manager approves up to $500. Above that, VP Engineering approval needed. Home office setup budget: $1,000 (use within first 90 days).
+### Technical deepening
+- [ ] Run the full `dbt` model suite locally and understand the DAG structure from `dbt docs serve`
+- [ ] Write and run a Soda check scan locally against your DEV Snowflake schema
+- [ ] Review at least one Databricks ingestion notebook end-to-end with your buddy
+- [ ] Understand how a failed Soda check triggers a Teams alert (your buddy will simulate one for you)
+
+---
+
+## Week 4 — Independence
+
+### Goal: complete an end-to-end task independently
+
+- [ ] Take ownership of a medium-complexity ticket (new Bronze-to-Gold pipeline for an existing source)
+- [ ] Design the model structure, get a quick sync with your buddy before coding
+- [ ] Implement Bronze ingestion (if needed), Silver staging, and Gold mart models
+- [ ] Add dbt tests and Soda checks
+- [ ] Open a PR and present the design briefly in the PR description
+- [ ] Document the new model in Atlan after merge (add description, owner, domain, classification)
+- [ ] Demo the new data to the business stakeholder who requested it
+
+### End-of-month check-in
+- [ ] 1:1 with your manager: review what went well, what was confusing, what you want to learn next
+- [ ] Update your Azure DevOps user profile with your team and skills
+- [ ] Add your preferred contact method to the team wiki
+
+---
+
+## Ongoing Responsibilities
+
+Once settled in, every data developer on the team is responsible for:
+
+| Responsibility | Frequency |
+|---------------|-----------|
+| Attend standups | Mon / Wed / Fri, 9:30 AM MT |
+| Monitor `#data-platform-alerts` | Daily (during business hours) |
+| Review PRs assigned to you | Within 1 business day |
+| Update ticket status in DevOps Boards | As work progresses |
+| Recertify data access | Quarterly (prompted by MyAccess) |
+| Keep Atlan descriptions current for models you own | When models change |
+| Add Soda checks for new models | Before every production promotion |
+
+---
+
+## Key Contacts
+
+| Role | Who to contact |
+|------|---------------|
+| Manager / Team Lead | Your direct manager (see your org chart in Teams) |
+| Onboarding Buddy | Assigned on Day 1 |
+| IT Service Desk | `servicedesk@aimco.ca` or IT Help channel in Teams |
+| Data Governance Lead | `#data-governance` channel |
+| Databricks / Platform issues | `#data-platform-team` channel |
+| HR / Payroll | HR Connect portal |
+
+---
+
+## Quick Reference: Where Does Everything Live?
+
+| What | Where |
+|------|-------|
+| Code (dbt, notebooks, scripts) | Azure DevOps Repos — `DataPlatform` project |
+| Work tickets and backlog | Azure DevOps Boards |
+| Data catalog and lineage | Atlan (`aimco.atlan.com`) |
+| Data quality checks | Soda Cloud + `checks/` folder in dbt repo |
+| Reports and dashboards | Power BI Service (`app.powerbi.com`) |
+| Data warehouse (SQL) | Snowflake (`aimco.snowflakecomputing.com`) |
+| Compute (PySpark, notebooks) | Databricks workspace |
+| Team communication | Microsoft Teams |
+| HR, access requests | MyAccess portal + HR Connect |
