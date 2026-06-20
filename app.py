@@ -7,12 +7,12 @@ import streamlit as st
 from rag_graph import ask
 
 st.set_page_config(
-    page_title="Acme Corp Onboarding Assistant",
+    page_title="Meridian Investment Management Corporation Onboarding Assistant",
     page_icon="🤖",
     layout="centered",
 )
 
-st.title("🤖 Acme Corp Onboarding Assistant")
+st.title("🤖 Meridian Investment Management Corporation Onboarding Assistant")
 st.caption(
     "Ask anything about team processes, tools, dev setup, deployments, or the architecture. "
     "Answers are grounded in the team knowledge base."
